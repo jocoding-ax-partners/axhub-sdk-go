@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	axhub "github.com/axhub/axhub-sdk-go"
+	axhub "github.com/jocoding-ax-partners/axhub-sdk-go"
 	"net/http"
 	"net/http/httptest"
 	"os"

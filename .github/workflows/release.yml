@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # actions/setup-go v5
+        with:
+          go-version: '1.24.x'
+          cache: true
+      - name: Verify tag commit is on main
+        run: |
+          git fetch origin main --depth=1
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+      - name: Verify CI succeeded on tagged commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh run list --workflow ci.yml --commit "$GITHUB_SHA" --status success --json databaseId --jq 'length')
+          [ "$count" -gt 0 ] || { echo "No successful ci.yml run found for $GITHUB_SHA"; exit 1; }
+      - run: go vet ./...
+      - name: Conformance (42 vectors) + route parity (177)
+        run: go test ./... -run 'Conformance|Regression|Operations|Coverage' -v
+      - run: go test ./...
+      - run: go build ./...
+      - name: Example consumer smoke before release
+        run: |
+          cd examples/testapp
+          go run .
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # softprops/action-gh-release v2.6.2
+        with:
+          generate_release_notes: true
+      - name: Warm Go module proxy
+        run: GOPROXY=proxy.golang.org go list -m github.com/jocoding-ax-partners/axhub-sdk-go@${{ github.ref_name }}
+        continue-on-error: true
+
+  smoke:
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # actions/setup-go v5
+        with:
+          go-version: '1.24.x'
+      - name: Install from module proxy in clean consumer
+        run: |
+          set -eux
+          mkdir smoke && cd smoke
+          go mod init axhub-smoke
+          go get github.com/jocoding-ax-partners/axhub-sdk-go@${{ github.ref_name }}
+          cat > main.go <<'GO'
+          package main
+          import axhub "github.com/jocoding-ax-partners/axhub-sdk-go"
+          func main() { _ = axhub.NewClient(axhub.Config{BaseURL: "https://api.axhub.ai"}) }
+          GO
+          go build .

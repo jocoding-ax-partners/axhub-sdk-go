@@ -1,3 +1,3 @@
-module github.com/axhub/axhub-sdk-go
+module github.com/jocoding-ax-partners/axhub-sdk-go
 
 go 1.24
