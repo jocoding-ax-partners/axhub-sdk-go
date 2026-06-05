@@ -125,11 +125,14 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 	if len(strings.TrimSpace(string(raw))) == 0 {
 		return map[string]any{}, nil
 	}
-	var m map[string]any
-	if err := json.Unmarshal(raw, &m); err != nil {
-		return nil, err
+	var decoded any
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return map[string]any{"raw": string(raw)}, nil
 	}
-	return camelizeMap(m), nil
+	if m, ok := decoded.(map[string]any); ok {
+		return camelizeMap(m), nil
+	}
+	return map[string]any{"value": camelize(decoded)}, nil
 }
 
 var pathParamRe = regexp.MustCompile(`\{[^}]+\}`)

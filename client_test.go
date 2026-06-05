@@ -96,3 +96,33 @@ func TestRegressionEightContextCoverage(t *testing.T) {
 		}
 	}
 }
+
+func TestRegressionNonJSONSuccessAndScalarErrorBodies(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/auth/google_oauth2/start":
+			w.Header().Set("Content-Type", "text/html")
+			_, _ = w.Write([]byte("<html>oauth redirect target</html>"))
+		case "/oauth/token":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(400)
+			_, _ = w.Write([]byte(`"invalid_request"`))
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+	client := NewClient(Config{BaseURL: srv.URL})
+	got, err := client.Request(context.Background(), "authGetAuthGoogleOauth2Start", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("non-json success should not fail: %v", err)
+	}
+	if got["raw"] != "<html>oauth redirect target</html>" {
+		t.Fatalf("unexpected raw response: %#v", got)
+	}
+	_, err = client.Request(context.Background(), "authPostOauthToken", nil, nil, map[string]any{"noop": true})
+	axErr, ok := err.(*AxHubError)
+	if !ok || axErr.Status != 400 || axErr.Code != "http_400" {
+		t.Fatalf("scalar JSON error should become typed HTTP error: %#v", err)
+	}
+}
