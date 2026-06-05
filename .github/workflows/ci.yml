@@ -23,11 +23,13 @@ jobs:
       matrix:
         go: ['1.24.x', '1.26.x']
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # actions/checkout v4
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # actions/setup-go v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # actions/checkout v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # actions/setup-go v6
         with:
           go-version: ${{ matrix.go }}
-          cache: true
+          cache: false
       - run: go vet ./...
       - name: Conformance (42 vectors) + route parity (177)
         run: go test ./... -run 'Conformance|Regression|Operations|Coverage' -v
