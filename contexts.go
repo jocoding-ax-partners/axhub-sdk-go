@@ -1,7 +1,15 @@
 package axhub
 
 var ContextRoutes = map[string][]Route{
-	"apps": {}, "identity": {}, "tenants": {}, "authz": {}, "audit": {}, "gateway": {}, "data": {}, "deployments": {},
+	"apps":        {},
+	"identity":    {},
+	"tenants":     {},
+	"authz":       {},
+	"audit":       {},
+	"gateway":     {},
+	"cost":        {},
+	"data":        {},
+	"deployments": {},
 }
 
 func init() {
@@ -25,11 +33,13 @@ func contextName(route Route) string {
 		return "audit"
 	case "Gateway", "Config":
 		return "gateway"
+	case "Cost":
+		return "cost"
 	case "Schema":
 		return "data"
 	case "Deploy", "deploy":
 		return "deployments"
 	default:
-		return "gateway"
+		panic("unmapped route tag: " + route.Tag)
 	}
 }

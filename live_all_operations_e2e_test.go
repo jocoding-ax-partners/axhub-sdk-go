@@ -49,7 +49,7 @@ func TestLiveAllGeneratedOperationFacadesHitProd(t *testing.T) {
 	tenantID := getenv("AXHUB_LIVE_TENANT_ID", "cc1e58f1-8e46-4ac7-96c1-190c4cdd5b70")
 	tenantSlug := getenv("AXHUB_LIVE_TENANT_SLUG", "test")
 	baseURL := getenv("AXHUB_LIVE_BASE_URL", "https://api.axhub.ai")
-	if len(Routes) != 177 {
+	if len(Routes) != 189 {
 		t.Fatalf("route coverage drift: %d", len(Routes))
 	}
 	ctx := context.Background()
@@ -74,7 +74,7 @@ func TestLiveAllGeneratedOperationFacadesHitProd(t *testing.T) {
 
 	contexts := map[string]any{
 		"apps": c.Apps, "identity": c.Identity(), "tenants": c.Tenants(), "authz": c.Authz(),
-		"audit": c.Audit(), "gateway": c.Gateway(), "data": c.Data(), "deployments": c.Deployments(),
+		"audit": c.Audit(), "gateway": c.Gateway(), "cost": c.Cost(), "data": c.Data(), "deployments": c.Deployments(),
 	}
 	results := []liveOperationResult{}
 	for _, route := range Routes {
@@ -130,11 +130,17 @@ func TestLiveAllGeneratedOperationFacadesHitProd(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if len(results) != 177 {
+	if len(results) != 189 {
 		t.Fatalf("total drift %d", len(results))
 	}
-	if got := countResults(results, func(r liveOperationResult) bool { return r.Method != "GET" }); got != 97 {
-		t.Fatalf("destructive method count drift %d", got)
+	expectedDestructive := 0
+	for _, route := range Routes {
+		if route.Method != "GET" {
+			expectedDestructive++
+		}
+	}
+	if got := countResults(results, func(r liveOperationResult) bool { return r.Method != "GET" }); got != expectedDestructive {
+		t.Fatalf("destructive method count drift %d != %d", got, expectedDestructive)
 	}
 	if bad := filterResults(results, func(r liveOperationResult) bool { return r.Kind == "exception" || r.ServerError }); len(bad) > 0 {
 		t.Fatalf("live failures: %+v", bad)

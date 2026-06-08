@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strings"
 	"time"
@@ -45,6 +46,7 @@ func NewClient(cfg Config) *Client {
 	if hc == nil {
 		hc = http.DefaultClient
 	}
+	hc = noRedirectClient(hc)
 	c := &Client{baseURL: base, token: cfg.Token, tokenType: cfg.TokenType, defaultTenantID: cfg.DefaultTenantID, defaultTenantSlug: cfg.DefaultTenantSlug, http: hc}
 	c.Apps = &AppsClient{client: c}
 	return c
@@ -90,18 +92,26 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 	}
 	var reader io.Reader
 	if body != nil {
-		raw, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
+		if isFormEncodedOperation(operationID) {
+			reader = strings.NewReader(formValues(body).Encode())
+		} else {
+			raw, err := json.Marshal(body)
+			if err != nil {
+				return nil, err
+			}
+			reader = bytes.NewReader(raw)
 		}
-		reader = bytes.NewReader(raw)
 	}
 	req, err := http.NewRequestWithContext(ctx, route.Method, u.String(), reader)
 	if err != nil {
 		return nil, err
 	}
 	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
+		if isFormEncodedOperation(operationID) {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		} else {
+			req.Header.Set("Content-Type", "application/json")
+		}
 	}
 	req.Header.Set("X-Request-ID", newRequestID())
 	if c.token != "" {
@@ -119,6 +129,9 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 	}
 	defer resp.Body.Close()
 	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		return map[string]any{"status": resp.StatusCode, "location": resp.Header.Get("Location")}, nil
+	}
 	if resp.StatusCode >= 400 {
 		return nil, parseError(resp.StatusCode, raw)
 	}
@@ -138,6 +151,33 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 var pathParamRe = regexp.MustCompile(`\{[^}]+\}`)
 
 func unresolvedPathParam(path string) bool { return pathParamRe.MatchString(path) }
+
+var formEncodedOperations = map[string]bool{
+	"authPostOauthDeviceAuthorization": true,
+	"authPostOauthRevoke":              true,
+	"authPostOauthToken":               true,
+}
+
+func isFormEncodedOperation(operationID string) bool { return formEncodedOperations[operationID] }
+
+func formValues(body any) url.Values {
+	values := url.Values{}
+	rv := reflect.ValueOf(body)
+	if rv.Kind() == reflect.Map {
+		for _, key := range rv.MapKeys() {
+			values.Set(fmt.Sprint(key.Interface()), fmt.Sprint(rv.MapIndex(key).Interface()))
+		}
+	}
+	return values
+}
+
+func noRedirectClient(hc *http.Client) *http.Client {
+	clone := *hc
+	clone.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return &clone
+}
 
 func parseError(status int, raw []byte) error {
 	var env struct {
