@@ -40,6 +40,7 @@ var ErrorCodes = map[string]ErrorInfo{
 	"empty":                    {Category: "validation", Status: 400, Retryable: false},
 	"forbidden":                {Category: "permission_denied", Status: 403, Retryable: false},
 	"internal_error":           {Category: "internal", Status: 500, Retryable: false},
+	"invalid_expiry":           {Category: "validation", Status: 400, Retryable: false},
 	"invalid_format":           {Category: "validation", Status: 400, Retryable: false},
 	"invalid_state_transition": {Category: "conflict", Status: 409, Retryable: false},
 	"invalid_value":            {Category: "validation", Status: 400, Retryable: false},

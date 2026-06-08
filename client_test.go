@@ -3,8 +3,10 @@ package axhub
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -56,10 +58,10 @@ func TestRegressionTenantRequiredBeforeRequest(t *testing.T) {
 }
 
 func TestRegressionErrorMappingAndRouteCoverage(t *testing.T) {
-	if len(Routes) != 177 {
+	if len(Routes) != 189 {
 		t.Fatalf("route coverage drift: got %d", len(Routes))
 	}
-	if len(ErrorCodes) != 42 {
+	if len(ErrorCodes) != 43 {
 		t.Fatalf("error code drift: got %d", len(ErrorCodes))
 	}
 	info, ok := ErrorCodes["slug_taken"]
@@ -89,7 +91,7 @@ func TestRegressionErrorMetadataAndRedaction(t *testing.T) {
 }
 
 func TestRegressionEightContextCoverage(t *testing.T) {
-	want := []string{"apps", "identity", "tenants", "authz", "audit", "gateway", "data", "deployments"}
+	want := []string{"apps", "identity", "tenants", "authz", "audit", "gateway", "cost", "data", "deployments"}
 	for _, name := range want {
 		if len(ContextRoutes[name]) == 0 {
 			t.Fatalf("missing context routes for %s", name)
@@ -124,5 +126,50 @@ func TestRegressionNonJSONSuccessAndScalarErrorBodies(t *testing.T) {
 	axErr, ok := err.(*AxHubError)
 	if !ok || axErr.Status != 400 || axErr.Code != "http_400" {
 		t.Fatalf("scalar JSON error should become typed HTTP error: %#v", err)
+	}
+}
+
+func TestRegressionOAuthFormEncodingAndRedirectPolicy(t *testing.T) {
+	var tokenContentType, tokenBody string
+	redirectTargetHit := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/oauth/token":
+			tokenContentType = r.Header.Get("Content-Type")
+			raw, _ := io.ReadAll(r.Body)
+			tokenBody = string(raw)
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "tok_go", "token_type": "Bearer", "expires_in": 3600})
+		case "/auth/google_oauth2/start":
+			http.Redirect(w, r, "/redirect-target", http.StatusFound)
+		case "/redirect-target":
+			redirectTargetHit = true
+			w.WriteHeader(500)
+		default:
+			w.WriteHeader(404)
+		}
+	}))
+	defer srv.Close()
+
+	client := NewClient(Config{BaseURL: srv.URL, Token: "pat_secret", TokenType: TokenTypePAT})
+	got, err := client.Request(context.Background(), "authPostOauthToken", nil, nil, map[string]any{"grant_type": "client_credentials", "client_id": "cid"})
+	if err != nil {
+		t.Fatalf("oauth token form request failed: %v", err)
+	}
+	if got["accessToken"] != "tok_go" {
+		t.Fatalf("oauth token response drift: %#v", got)
+	}
+	if !strings.HasPrefix(tokenContentType, "application/x-www-form-urlencoded") || !strings.Contains(tokenBody, "grant_type=client_credentials") || strings.Contains(tokenBody, "{") {
+		t.Fatalf("oauth token was not form-encoded content-type=%q body=%q", tokenContentType, tokenBody)
+	}
+	redirect, err := client.Request(context.Background(), "authGetAuthGoogleOauth2Start", nil, nil, nil)
+	if err != nil {
+		t.Fatalf("redirect response should be returned: %v", err)
+	}
+	if redirect["status"] != 302 || redirect["location"] != "/redirect-target" {
+		t.Fatalf("redirect response drift: %#v", redirect)
+	}
+	if redirectTargetHit {
+		t.Fatalf("redirect was followed; auth headers could leak to redirect target")
 	}
 }
