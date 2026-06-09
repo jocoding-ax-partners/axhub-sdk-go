@@ -34,6 +34,10 @@ type Client struct {
 	tokenType                                          TokenType
 	http                                               *http.Client
 	Apps                                               *AppsClient
+	// schemaCache backs the ergonomic data layer's Data().Discover(); it lives
+	// on the root client so discover() across separate Tenant().App() chains
+	// shares one cache (mirrors the node single per-SDK DataClient cache).
+	dataSchemaCache *SchemaCache
 }
 type AppsClient struct{ client *Client }
 
@@ -49,6 +53,7 @@ func NewClient(cfg Config) *Client {
 	hc = noRedirectClient(hc)
 	c := &Client{baseURL: base, token: cfg.Token, tokenType: cfg.TokenType, defaultTenantID: cfg.DefaultTenantID, defaultTenantSlug: cfg.DefaultTenantSlug, http: hc}
 	c.Apps = &AppsClient{client: c}
+	c.dataSchemaCache = NewSchemaCache(SchemaCacheOptions{})
 	return c
 }
 func (c *Client) BaseURL() string { return c.baseURL }
@@ -79,20 +84,66 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 	if unresolvedPathParam(path) {
 		return nil, &AxHubError{Category: "validation", Code: "required", Message: "missing path parameter for " + path}
 	}
+	var values url.Values
+	if len(query) > 0 {
+		values = url.Values{}
+		for k, v := range query {
+			values.Set(k, v)
+		}
+	}
+	decoded, err := c.doHTTP(ctx, route.Method, path, values, body, isFormEncodedOperation(operationID))
+	if err != nil {
+		return nil, err
+	}
+	// The operation-id route table camelizes snake_case response keys so the
+	// conformance vectors can assert camelCase fields.
+	if m, ok := decoded.(map[string]any); ok {
+		return camelizeMap(m), nil
+	}
+	if decoded == nil {
+		return map[string]any{}, nil
+	}
+	return map[string]any{"value": camelize(decoded)}, nil
+}
+
+// requestRaw is the data-layer transport: a path-based request that returns the
+// decoded JSON WITHOUT snake->camel rewriting, so dynamic-table row data and the
+// list envelope come back verbatim (mirrors python request_raw). When
+// camelizeResponse is true the response IS camelized — discover() uses that so
+// `tableName`/`table_name` both resolve on the inspect metadata payload.
+func (c *Client) requestRaw(ctx context.Context, method, path string, query url.Values, body any, camelizeResponse bool) (map[string]any, error) {
+	decoded, err := c.doHTTP(ctx, method, path, query, body, false)
+	if err != nil {
+		return nil, err
+	}
+	m, ok := decoded.(map[string]any)
+	if !ok {
+		if decoded == nil {
+			return map[string]any{}, nil
+		}
+		return map[string]any{"value": decoded}, nil
+	}
+	if camelizeResponse {
+		return camelizeMap(m), nil
+	}
+	return m, nil
+}
+
+// doHTTP performs auth + request-id + body encoding + status handling shared by
+// the operation-id transport (Request) and the data-layer transport
+// (requestRaw). It returns the decoded JSON body (any), leaving camelize policy
+// to the caller.
+func (c *Client) doHTTP(ctx context.Context, method, path string, query url.Values, body any, formEncoded bool) (any, error) {
 	u, err := url.Parse(c.baseURL + path)
 	if err != nil {
 		return nil, err
 	}
 	if len(query) > 0 {
-		q := u.Query()
-		for k, v := range query {
-			q.Set(k, v)
-		}
-		u.RawQuery = q.Encode()
+		u.RawQuery = query.Encode()
 	}
 	var reader io.Reader
 	if body != nil {
-		if isFormEncodedOperation(operationID) {
+		if formEncoded {
 			reader = strings.NewReader(formValues(body).Encode())
 		} else {
 			raw, err := json.Marshal(body)
@@ -102,12 +153,12 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 			reader = bytes.NewReader(raw)
 		}
 	}
-	req, err := http.NewRequestWithContext(ctx, route.Method, u.String(), reader)
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), reader)
 	if err != nil {
 		return nil, err
 	}
 	if body != nil {
-		if isFormEncodedOperation(operationID) {
+		if formEncoded {
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		} else {
 			req.Header.Set("Content-Type", "application/json")
@@ -142,10 +193,7 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 	if err := json.Unmarshal(raw, &decoded); err != nil {
 		return map[string]any{"raw": string(raw)}, nil
 	}
-	if m, ok := decoded.(map[string]any); ok {
-		return camelizeMap(m), nil
-	}
-	return map[string]any{"value": camelize(decoded)}, nil
+	return decoded, nil
 }
 
 var pathParamRe = regexp.MustCompile(`\{[^}]+\}`)
