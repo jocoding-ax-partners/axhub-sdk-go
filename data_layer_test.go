@@ -670,11 +670,33 @@ func assertCode(t *testing.T, err error, wantCode string) {
 
 func wptr(e QueryExpr) *QueryExpr { return &e }
 
-func TestListCountRequireWhereFilter(t *testing.T) {
+func TestFilterlessListPassesForOwnerScopedTables(t *testing.T) {
+	// Live contract 2026-06: the backend ACCEPTS unfiltered list/count on
+	// owner-scoped tables (rows auto-scope to the caller). The 0.3.0 client-side
+	// pre-check wrongly blocked this — filterless calls must reach the wire.
 	ds := newDataServer()
 	defer ds.close()
-	// The live data ring 400s an unfiltered list/count (mass-scan guard); the SDK
-	// fails fast with where_required before any HTTP request.
+	ds.status, ds.body = 200, map[string]any{"items": []any{map[string]any{"id": "mine"}}, "has_more": false}
+	page, err := ds.table().List(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("filterless List on owner-scoped table: %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0]["id"] != "mine" {
+		t.Fatalf("unexpected items: %v", page.Items)
+	}
+}
+
+func TestBackendWhereRequired400MapsToValidationError(t *testing.T) {
+	// Non-owner-scoped tables still get the mass-scan guard — server-side. The
+	// SDK maps that 400 (code=required) onto the same actionable error.
+	ds := newDataServer()
+	defer ds.close()
+	ds.status = 400
+	ds.body = map[string]any{"error": map[string]any{
+		"message": "최소 1개의 WHERE 필터가 필요해요", "code": "required",
+		"category": "validation", "retryable": false,
+		"fields": []any{map[string]any{"name": "where", "code": "required"}},
+	}}
 	_, listErr := ds.table().List(context.Background(), nil)
 	if ax, ok := listErr.(*AxHubError); !ok || ax.Code != "where_required" {
 		t.Fatalf("filterless List: expected where_required, got %v", listErr)

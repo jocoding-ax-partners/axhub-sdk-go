@@ -168,14 +168,6 @@ func (r *DataResource) List(ctx context.Context, opts *ListOptions) (*PaginatedL
 	}
 	perPage, hasPerPage := clampPerPage(perPageSrc, opts.PageSize != 0 || opts.Limit != 0)
 
-	// The AxHub data ring rejects an unfiltered list with HTTP 400
-	// ("최소 1개의 WHERE 필터가 필요해요") as a deliberate mass-scan guard — confirmed
-	// live 2026-06, mirrored by the `axhub data` CLI. Checked after cursor/page
-	// validation so a malformed cursor still surfaces first.
-	if opts.Where == nil {
-		return nil, newValidationError("AxHub data list requires at least one WHERE filter (the backend rejects unfiltered scans). Pass a Where(...).", "where_required")
-	}
-
 	query, werr := serializeWhere(opts.Where)
 	if werr != nil {
 		return nil, werr
@@ -195,7 +187,7 @@ func (r *DataResource) List(ctx context.Context, opts *ListOptions) (*PaginatedL
 
 	raw, err := r.client.requestRaw(ctx, "GET", r.path(""), query, nil, false)
 	if err != nil {
-		return nil, err
+		return nil, mapWhereRequired("list", err)
 	}
 	items := projectRows(rowsFromAny(raw["items"]), opts.Select)
 	// NOTE: mirrors node behavior — currentPage falls back to the requested
@@ -256,17 +248,13 @@ func (r *DataResource) Count(ctx context.Context, opts *CountOptions) (int, erro
 	if opts != nil {
 		where = opts.Where
 	}
-	// Same mass-scan guard as List — the backend 400s an unfiltered count.
-	if where == nil {
-		return 0, newValidationError("AxHub data count requires at least one WHERE filter (the backend rejects unfiltered scans). Pass a Where(...).", "where_required")
-	}
 	query, werr := serializeWhere(where)
 	if werr != nil {
 		return 0, werr
 	}
 	raw, err := r.client.requestRaw(ctx, "GET", r.path("")+"/_count", query, nil, false)
 	if err != nil {
-		return 0, err
+		return 0, mapWhereRequired("count", err)
 	}
 	count, _ := intFromAny(raw["count"])
 	return count, nil
