@@ -65,7 +65,7 @@ func main() {
 
 	app, err := client.Apps.Create(ctx, map[string]any{
 		"slug": slug, "name": "Agent Go README QA", "visibility": "private",
-		"auth_mode": "anonymous", "resource_tier": "S", "deploy_method": "docker", "subdomain": slug,
+		"auth_mode": "anonymous", "resource_preset": "S", "deploy_method": "docker", "subdomain": slug,
 	})
 	if err != nil { log.Fatal(err) }
 	appID := app["id"].(string)

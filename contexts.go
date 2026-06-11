@@ -1,14 +1,14 @@
 package axhub
 
 var ContextRoutes = map[string][]Route{
-	"apps":        {},
-	"identity":    {},
-	"tenants":     {},
-	"authz":       {},
-	"audit":       {},
-	"gateway":     {},
-	"cost":        {},
-	"data":        {},
+	"apps": {},
+	"identity": {},
+	"tenants": {},
+	"authz": {},
+	"audit": {},
+	"gateway": {},
+	"cost": {},
+	"data": {},
 	"deployments": {},
 }
 
