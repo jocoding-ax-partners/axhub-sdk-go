@@ -7,7 +7,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestRegressionAppsCreateConformance(t *testing.T) {
@@ -58,10 +60,10 @@ func TestRegressionTenantRequiredBeforeRequest(t *testing.T) {
 }
 
 func TestRegressionErrorMappingAndRouteCoverage(t *testing.T) {
-	if len(Routes) != 189 {
+	if len(Routes) != 185 {
 		t.Fatalf("route coverage drift: got %d", len(Routes))
 	}
-	if len(ErrorCodes) != 43 {
+	if len(ErrorCodes) != 58 {
 		t.Fatalf("error code drift: got %d", len(ErrorCodes))
 	}
 	info, ok := ErrorCodes["slug_taken"]
@@ -171,5 +173,107 @@ func TestRegressionOAuthFormEncodingAndRedirectPolicy(t *testing.T) {
 	}
 	if redirectTargetHit {
 		t.Fatalf("redirect was followed; auth headers could leak to redirect target")
+	}
+}
+
+func TestRegressionErrorFullFieldDecode(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(422)
+		_, _ = w.Write([]byte(`{"error":{"category":"validation","code":"invalid_value","message":"잘못된 값","request_id":"req_full","resource":"app","retryable":false,"doc_url":"https://docs.axhub.ai/errors/invalid_value","fields":[{"name":"slug","code":"invalid_format","message":"형식 오류"},{"name":"name","code":"required"}],"retry":{"after_ms":1500}}}`))
+	}))
+	defer srv.Close()
+	client := NewClient(Config{BaseURL: srv.URL})
+	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/apps/app_1", nil, nil, false)
+	axErr, ok := err.(*AxHubError)
+	if !ok {
+		t.Fatalf("expected *AxHubError, got %T: %v", err, err)
+	}
+	if axErr.Category != "validation" || axErr.Code != "invalid_value" || axErr.RequestID != "req_full" || axErr.Status != 422 {
+		t.Fatalf("base field drift: %#v", axErr)
+	}
+	if axErr.Resource != "app" {
+		t.Fatalf("resource drift: %q", axErr.Resource)
+	}
+	if axErr.DocURL != "https://docs.axhub.ai/errors/invalid_value" {
+		t.Fatalf("doc_url drift: %q", axErr.DocURL)
+	}
+	if axErr.Retry == nil || axErr.Retry.AfterMs != 1500 {
+		t.Fatalf("retry drift: %#v", axErr.Retry)
+	}
+	if len(axErr.Fields) != 2 {
+		t.Fatalf("fields length drift: %#v", axErr.Fields)
+	}
+	if axErr.Fields[0].Name != "slug" || axErr.Fields[0].Code != "invalid_format" || axErr.Fields[0].Message != "형식 오류" {
+		t.Fatalf("fields[0] drift: %#v", axErr.Fields[0])
+	}
+	if axErr.Fields[1].Name != "name" || axErr.Fields[1].Code != "required" || axErr.Fields[1].Message != "" {
+		t.Fatalf("fields[1] drift: %#v", axErr.Fields[1])
+	}
+}
+
+func TestRegression429RetryAfterBackoffSucceeds(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if atomic.AddInt32(&calls, 1) <= 2 {
+			w.Header().Set("Retry-After", "0")
+			w.WriteHeader(429)
+			_, _ = w.Write([]byte(`{"error":{"category":"unavailable","code":"temporarily_unavailable","message":"too many","retryable":true,"retry":{"after_ms":0}}}`))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+	client := NewClient(Config{BaseURL: srv.URL})
+	got, err := client.doHTTP(context.Background(), "GET", "/api/v1/ping", nil, nil, false)
+	if err != nil {
+		t.Fatalf("expected retry to succeed, got error: %v", err)
+	}
+	m, ok := got.(map[string]any)
+	if !ok || m["ok"] != true {
+		t.Fatalf("unexpected body after retry: %#v", got)
+	}
+	if n := atomic.LoadInt32(&calls); n != 3 {
+		t.Fatalf("expected 3 attempts (1 initial + 2 retries), got %d", n)
+	}
+}
+
+func TestRegression429RetriesExhaustReturnError(t *testing.T) {
+	var calls int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		atomic.AddInt32(&calls, 1)
+		w.Header().Set("Retry-After", "0")
+		w.WriteHeader(429)
+		_, _ = w.Write([]byte(`{"error":{"category":"unavailable","code":"temporarily_unavailable","message":"too many","retryable":true}}`))
+	}))
+	defer srv.Close()
+	client := NewClient(Config{BaseURL: srv.URL})
+	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/ping", nil, nil, false)
+	axErr, ok := err.(*AxHubError)
+	if !ok || axErr.Status != 429 {
+		t.Fatalf("expected 429 AxHubError after exhausting retries, got %T: %v", err, err)
+	}
+	if n := atomic.LoadInt32(&calls); n != maxRateLimitRetries+1 {
+		t.Fatalf("expected %d attempts before giving up, got %d", maxRateLimitRetries+1, n)
+	}
+}
+
+func TestRetryAfterDurationParsing(t *testing.T) {
+	cases := []struct {
+		header string
+		want   time.Duration
+	}{
+		{"", defaultRetryAfter},
+		{"0", 0},
+		{"2", 2 * time.Second},
+		{"  5 ", 5 * time.Second},
+		{"-1", defaultRetryAfter},
+		{"garbage", defaultRetryAfter},
+	}
+	for _, tc := range cases {
+		if got := retryAfterDuration(tc.header); got != tc.want {
+			t.Fatalf("retryAfterDuration(%q) = %v, want %v", tc.header, got, tc.want)
+		}
 	}
 }

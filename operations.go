@@ -5,13 +5,14 @@ import "context"
 // OperationParams carries low-level path, query, and JSON body values for generated route facades.
 type OperationParams struct {
 	PathParams map[string]string
-	Query      map[string]string
-	Body       any
+	Query map[string]string
+	Body any
 }
 
 func (c *Client) Operation(ctx context.Context, operationID string, params OperationParams) (map[string]any, error) {
 	return c.Request(ctx, operationID, params.PathParams, params.Query, params.Body)
 }
+
 
 func (x *AppsClient) AppsGetApiV1AdminTemplates(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsGetApiV1AdminTemplates", params)
@@ -115,6 +116,9 @@ func (x *AppsClient) AppsGetApiV1MeAppsReceived(ctx context.Context, params Oper
 func (x *AppsClient) AppsGetApiV1MeAppsWorkspace(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsGetApiV1MeAppsWorkspace", params)
 }
+func (x *AppsClient) AppsGetApiV1ResourcePresets(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "appsGetApiV1ResourcePresets", params)
+}
 func (x *AppsClient) AppsGetApiV1ReviewRequestsByRrID(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsGetApiV1ReviewRequestsByRrID", params)
 }
@@ -171,11 +175,13 @@ func (x *AppsClient) AppsGetInternalAppAccess(ctx context.Context, params Operat
 }
 
 type IdentityClient struct{ client *Client }
-
 func (c *Client) Identity() *IdentityClient { return &IdentityClient{client: c} }
 
 func (x *IdentityClient) AuthGetWellKnownJwksJson(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "authGetWellKnownJwksJson", params)
+}
+func (x *IdentityClient) AuthGetWellKnownOauthAuthorizationServer(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authGetWellKnownOauthAuthorizationServer", params)
 }
 func (x *IdentityClient) AuthGetWellKnownOpenidConfiguration(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "authGetWellKnownOpenidConfiguration", params)
@@ -272,7 +278,6 @@ func (x *IdentityClient) AuthGetOauthUserinfo(ctx context.Context, params Operat
 }
 
 type TenantsClient struct{ client *Client }
-
 func (c *Client) Tenants() *TenantsClient { return &TenantsClient{client: c} }
 
 func (x *TenantsClient) TenantsGetApiV1InviteLinksByToken(ctx context.Context, params OperationParams) (map[string]any, error) {
@@ -346,17 +351,37 @@ func (x *TenantsClient) TenantsPostApiV1TenantsByTenantIDMembersByMembershipIDRe
 }
 
 type AuthzClient struct{ client *Client }
-
 func (c *Client) Authz() *AuthzClient { return &AuthzClient{client: c} }
 
 func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDGrants(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDGrants", params)
 }
-func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDGrantsByGrantIDGrant(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDGrantsByGrantIDGrant", params)
+func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDGrants(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDGrants", params)
 }
-func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDGrantsByGrantIDRevoke(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDGrantsByGrantIDRevoke", params)
+func (x *AuthzClient) AuthorizationDeleteApiV1TenantsByTenantIDGrantsByGrantID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationDeleteApiV1TenantsByTenantIDGrantsByGrantID", params)
+}
+func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDGrantsByGrantID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDGrantsByGrantID", params)
+}
+func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDMeGrants(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDMeGrants", params)
+}
+func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDPresets(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDPresets", params)
+}
+func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDPresets(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDPresets", params)
+}
+func (x *AuthzClient) AuthorizationDeleteApiV1TenantsByTenantIDPresetsByPresetID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationDeleteApiV1TenantsByTenantIDPresetsByPresetID", params)
+}
+func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDPresetsByPresetID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDPresetsByPresetID", params)
+}
+func (x *AuthzClient) AuthorizationPatchApiV1TenantsByTenantIDPresetsByPresetID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationPatchApiV1TenantsByTenantIDPresetsByPresetID", params)
 }
 func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDSubjects(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDSubjects", params)
@@ -364,36 +389,11 @@ func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDSubjects(ctx context
 func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDSubjects(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDSubjects", params)
 }
-func (x *AuthzClient) AuthorizationDeleteApiV1TenantsByTenantIDSubjectsBySubjectID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationDeleteApiV1TenantsByTenantIDSubjectsBySubjectID", params)
-}
-func (x *AuthzClient) AuthorizationPatchApiV1TenantsByTenantIDSubjectsBySubjectID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationPatchApiV1TenantsByTenantIDSubjectsBySubjectID", params)
-}
-func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDSubjectsBySubjectIDMove(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDSubjectsBySubjectIDMove", params)
-}
-func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDSubjectsBySubjectIDTags(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDSubjectsBySubjectIDTags", params)
-}
-func (x *AuthzClient) AuthorizationDeleteApiV1TenantsByTenantIDSubjectsBySubjectIDTagsByTagID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationDeleteApiV1TenantsByTenantIDSubjectsBySubjectIDTagsByTagID", params)
-}
-func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDTags(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDTags", params)
-}
-func (x *AuthzClient) AuthorizationPostApiV1TenantsByTenantIDTags(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationPostApiV1TenantsByTenantIDTags", params)
-}
-func (x *AuthzClient) AuthorizationDeleteApiV1TenantsByTenantIDTagsByTagID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationDeleteApiV1TenantsByTenantIDTagsByTagID", params)
-}
-func (x *AuthzClient) AuthorizationPatchApiV1TenantsByTenantIDTagsByTagID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "authorizationPatchApiV1TenantsByTenantIDTagsByTagID", params)
+func (x *AuthzClient) AuthorizationGetApiV1TenantsByTenantIDSubjectsBySubjectID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "authorizationGetApiV1TenantsByTenantIDSubjectsBySubjectID", params)
 }
 
 type AuditClient struct{ client *Client }
-
 func (c *Client) Audit() *AuditClient { return &AuditClient{client: c} }
 
 func (x *AuditClient) AuditGetApiV1TenantsByTenantIDAuditEvents(ctx context.Context, params OperationParams) (map[string]any, error) {
@@ -410,27 +410,8 @@ func (x *AuditClient) AuditGetApiV1TenantsByTenantIDAuditEventsIntegrityCheck(ct
 }
 
 type GatewayClient struct{ client *Client }
-
 func (c *Client) Gateway() *GatewayClient { return &GatewayClient{client: c} }
 
-func (x *GatewayClient) GatewayGetApiV1CatalogKinds(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayGetApiV1CatalogKinds", params)
-}
-func (x *GatewayClient) GatewayGetApiV1Engines(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayGetApiV1Engines", params)
-}
-func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDCatalogConnectors(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDCatalogConnectors", params)
-}
-func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDCatalogResources(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDCatalogResources", params)
-}
-func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDCatalogResourcesByConnectorByPath(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDCatalogResourcesByConnectorByPath", params)
-}
-func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDCatalogResourcesByConnectorByPath(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDCatalogResourcesByConnectorByPath", params)
-}
 func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDConnectors(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDConnectors", params)
 }
@@ -440,48 +421,38 @@ func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDConnectors(ctx context.
 func (x *GatewayClient) GatewayDeleteApiV1TenantsByTenantIDConnectorsByConnectorID(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "gatewayDeleteApiV1TenantsByTenantIDConnectorsByConnectorID", params)
 }
+func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDConnectorsByConnectorID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDConnectorsByConnectorID", params)
+}
 func (x *GatewayClient) GatewayPatchApiV1TenantsByTenantIDConnectorsByConnectorID(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "gatewayPatchApiV1TenantsByTenantIDConnectorsByConnectorID", params)
 }
-func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDConnectorsByConnectorIDCredentials(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDConnectorsByConnectorIDCredentials", params)
+func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDConnectorsByConnectorIDTestConnection(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDConnectorsByConnectorIDTestConnection", params)
 }
-func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDConnectorsByConnectorIDDiscover(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDConnectorsByConnectorIDDiscover", params)
+func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDGatewayInvoke(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDGatewayInvoke", params)
 }
 func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDGatewayQuery(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDGatewayQuery", params)
 }
-func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDResources(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDResources", params)
+func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDGatewaySessions(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDGatewaySessions", params)
 }
-func (x *GatewayClient) GatewayDeleteApiV1TenantsByTenantIDResourcesByResourceID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayDeleteApiV1TenantsByTenantIDResourcesByResourceID", params)
+func (x *GatewayClient) GatewayDeleteApiV1TenantsByTenantIDGatewaySessionsBySessionID(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayDeleteApiV1TenantsByTenantIDGatewaySessionsBySessionID", params)
 }
-func (x *GatewayClient) GatewayPatchApiV1TenantsByTenantIDResourcesByResourceID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayPatchApiV1TenantsByTenantIDResourcesByResourceID", params)
+func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDMeConnectors(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDMeConnectors", params)
 }
-func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDResourcesByResourceIDMove(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDResourcesByResourceIDMove", params)
-}
-func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDResourcesByResourceIDTags(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDResourcesByResourceIDTags", params)
-}
-func (x *GatewayClient) GatewayDeleteApiV1TenantsByTenantIDResourcesByResourceIDTagsByTagID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayDeleteApiV1TenantsByTenantIDResourcesByResourceIDTagsByTagID", params)
-}
-func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDResourcesBulk(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDResourcesBulk", params)
-}
-func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDResourcesNamespaces(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDResourcesNamespaces", params)
+func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDMeConnectorsByConnectorIDResources(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayGetApiV1TenantsByTenantIDMeConnectorsByConnectorIDResources", params)
 }
 func (x *GatewayClient) ConfigGetConfigPublic(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "configGetConfigPublic", params)
 }
 
 type CostClient struct{ client *Client }
-
 func (c *Client) Cost() *CostClient { return &CostClient{client: c} }
 
 func (x *CostClient) CostGetApiV1TenantsByTenantIDCostByApp(ctx context.Context, params OperationParams) (map[string]any, error) {
@@ -493,15 +464,23 @@ func (x *CostClient) CostGetApiV1TenantsByTenantIDCostByCostCenter(ctx context.C
 func (x *CostClient) CostGetApiV1TenantsByTenantIDCostExport(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "costGetApiV1TenantsByTenantIDCostExport", params)
 }
+func (x *CostClient) CostGetApiV1TenantsByTenantIDCostMonths(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "costGetApiV1TenantsByTenantIDCostMonths", params)
+}
 func (x *CostClient) CostGetApiV1TenantsByTenantIDCostSummary(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "costGetApiV1TenantsByTenantIDCostSummary", params)
 }
 func (x *CostClient) CostGetApiV1TenantsByTenantIDCostTimeseries(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "costGetApiV1TenantsByTenantIDCostTimeseries", params)
 }
+func (x *CostClient) CostGetApiV1TenantsByTenantIDInfraAppsByAppIDUsageSeries(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "costGetApiV1TenantsByTenantIDInfraAppsByAppIDUsageSeries", params)
+}
+func (x *CostClient) CostGetApiV1TenantsByTenantIDInfraUsage(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "costGetApiV1TenantsByTenantIDInfraUsage", params)
+}
 
 type DataClient struct{ client *Client }
-
 func (c *Client) Data() *DataClient { return &DataClient{client: c} }
 
 func (x *DataClient) SchemaGetApiV1AppsByAppIDTables(ctx context.Context, params OperationParams) (map[string]any, error) {
@@ -569,7 +548,6 @@ func (x *DataClient) SchemaPatchDataByTenantSlugByAppSlugByTableById(ctx context
 }
 
 type DeploymentsClient struct{ client *Client }
-
 func (c *Client) Deployments() *DeploymentsClient { return &DeploymentsClient{client: c} }
 
 func (x *DeploymentsClient) DeployGetApiV1AppsByAppIDDeployments(ctx context.Context, params OperationParams) (map[string]any, error) {
@@ -617,6 +595,10 @@ func (x *DeploymentsClient) DeployPostApiV1TenantsByTenantIDAppBootstraps(ctx co
 func (x *DeploymentsClient) DeployGetApiV1TenantsByTenantIDAppBootstrapsByBootstrapID(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "deployGetApiV1TenantsByTenantIDAppBootstrapsByBootstrapID", params)
 }
+func (x *DeploymentsClient) DeployGetApiV1TenantsByTenantIDDeployments(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "deployGetApiV1TenantsByTenantIDDeployments", params)
+}
 func (x *DeploymentsClient) DeployPostWebhooksGithub(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "deployPostWebhooksGithub", params)
 }
+

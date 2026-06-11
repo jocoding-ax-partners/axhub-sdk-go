@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -141,59 +142,125 @@ func (c *Client) doHTTP(ctx context.Context, method, path string, query url.Valu
 	if len(query) > 0 {
 		u.RawQuery = query.Encode()
 	}
-	var reader io.Reader
+	// Encode the body once so it can be replayed across 429 retries (an
+	// io.Reader is single-use). contentType empty means no body.
+	var bodyBytes []byte
+	var contentType string
 	if body != nil {
 		if formEncoded {
-			reader = strings.NewReader(formValues(body).Encode())
+			bodyBytes = []byte(formValues(body).Encode())
+			contentType = "application/x-www-form-urlencoded"
 		} else {
 			raw, err := json.Marshal(body)
 			if err != nil {
 				return nil, err
 			}
-			reader = bytes.NewReader(raw)
+			bodyBytes = raw
+			contentType = "application/json"
 		}
 	}
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), reader)
-	if err != nil {
-		return nil, err
-	}
-	if body != nil {
-		if formEncoded {
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		} else {
-			req.Header.Set("Content-Type", "application/json")
+
+	// 429 backoff: honor the Retry-After header (seconds) and retry up to
+	// maxRateLimitRetries times, falling back to defaultRetryAfter when the
+	// header is absent. Mirrors the node core http.ts/ratelimit.ts sleep path.
+	for attempt := 0; ; attempt++ {
+		var reader io.Reader
+		if bodyBytes != nil {
+			reader = bytes.NewReader(bodyBytes)
 		}
-	}
-	req.Header.Set("X-Request-ID", newRequestID())
-	if c.token != "" {
-		if c.tokenType == TokenTypePAT {
-			req.Header.Set("X-Api-Key", c.token)
-		} else if c.tokenType == TokenTypeJWT {
-			req.Header.Set("Authorization", "Bearer "+c.token)
-		} else {
-			return nil, &AxHubError{Category: "validation", Code: "required", Message: "tokenType must be pat or jwt"}
+		req, err := http.NewRequestWithContext(ctx, method, u.String(), reader)
+		if err != nil {
+			return nil, err
 		}
+		if contentType != "" {
+			req.Header.Set("Content-Type", contentType)
+		}
+		req.Header.Set("X-Request-ID", newRequestID())
+		if c.token != "" {
+			if c.tokenType == TokenTypePAT {
+				req.Header.Set("X-Api-Key", c.token)
+			} else if c.tokenType == TokenTypeJWT {
+				req.Header.Set("Authorization", "Bearer "+c.token)
+			} else {
+				return nil, &AxHubError{Category: "validation", Code: "required", Message: "tokenType must be pat or jwt"}
+			}
+		}
+		resp, err := c.http.Do(req)
+		if err != nil {
+			return nil, err
+		}
+		raw, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+
+		if resp.StatusCode == http.StatusTooManyRequests && attempt < maxRateLimitRetries {
+			if err := sleepWithContext(ctx, retryAfterDuration(resp.Header.Get("Retry-After"))); err != nil {
+				return nil, err
+			}
+			continue
+		}
+		if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+			return map[string]any{"status": resp.StatusCode, "location": resp.Header.Get("Location")}, nil
+		}
+		if resp.StatusCode >= 400 {
+			return nil, parseError(resp.StatusCode, raw)
+		}
+		if len(strings.TrimSpace(string(raw))) == 0 {
+			return map[string]any{}, nil
+		}
+		var decoded any
+		if err := json.Unmarshal(raw, &decoded); err != nil {
+			return map[string]any{"raw": string(raw)}, nil
+		}
+		return decoded, nil
 	}
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return nil, err
+}
+
+const (
+	// maxRateLimitRetries bounds the 429 retry loop (initial attempt + this
+	// many retries). Matches the node core's bounded retry policy.
+	maxRateLimitRetries = 2
+	// defaultRetryAfter is the backoff used when a 429 omits Retry-After;
+	// the backend's ratelimit middleware hardcodes 60s (ratelimit.go:34).
+	defaultRetryAfter = 60 * time.Second
+)
+
+// retryAfterDuration parses an HTTP Retry-After header (RFC 7231 §7.1.3):
+// either numeric seconds or an HTTP-date. Falls back to defaultRetryAfter when
+// the header is missing or unparseable. Mirrors node core parseRetryAfter.
+func retryAfterDuration(header string) time.Duration {
+	header = strings.TrimSpace(header)
+	if header == "" {
+		return defaultRetryAfter
 	}
-	defer resp.Body.Close()
-	raw, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		return map[string]any{"status": resp.StatusCode, "location": resp.Header.Get("Location")}, nil
+	if secs, err := strconv.ParseFloat(header, 64); err == nil {
+		if secs < 0 {
+			return defaultRetryAfter
+		}
+		return time.Duration(secs * float64(time.Second))
 	}
-	if resp.StatusCode >= 400 {
-		return nil, parseError(resp.StatusCode, raw)
+	if t, err := http.ParseTime(header); err == nil {
+		if d := time.Until(t); d > 0 {
+			return d
+		}
+		return 0
 	}
-	if len(strings.TrimSpace(string(raw))) == 0 {
-		return map[string]any{}, nil
+	return defaultRetryAfter
+}
+
+// sleepWithContext waits for d or until ctx is cancelled, whichever comes
+// first. A non-positive d returns immediately.
+func sleepWithContext(ctx context.Context, d time.Duration) error {
+	if d <= 0 {
+		return nil
 	}
-	var decoded any
-	if err := json.Unmarshal(raw, &decoded); err != nil {
-		return map[string]any{"raw": string(raw)}, nil
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
-	return decoded, nil
 }
 
 var pathParamRe = regexp.MustCompile(`\{[^}]+\}`)
@@ -230,12 +297,16 @@ func noRedirectClient(hc *http.Client) *http.Client {
 func parseError(status int, raw []byte) error {
 	var env struct {
 		Error struct {
-			Category       string `json:"category"`
-			Code           string `json:"code"`
-			Message        string `json:"message"`
-			RequestID      string `json:"request_id"`
-			RequestIDCamel string `json:"requestId"`
-			Retryable      *bool  `json:"retryable"`
+			Category       string       `json:"category"`
+			Code           string       `json:"code"`
+			Message        string       `json:"message"`
+			RequestID      string       `json:"request_id"`
+			RequestIDCamel string       `json:"requestId"`
+			Retryable      *bool        `json:"retryable"`
+			Resource       string       `json:"resource"`
+			Fields         []FieldError `json:"fields"`
+			Retry          *RetryInfo   `json:"retry"`
+			DocURL         string       `json:"doc_url"`
 		} `json:"error"`
 	}
 	_ = json.Unmarshal(raw, &env)
@@ -258,7 +329,18 @@ func parseError(status int, raw []byte) error {
 	if env.Error.Retryable != nil {
 		retryable = *env.Error.Retryable
 	}
-	return &AxHubError{Category: env.Error.Category, Code: env.Error.Code, Status: status, Message: env.Error.Message, RequestID: requestID, Retryable: retryable}
+	return &AxHubError{
+		Category:  env.Error.Category,
+		Code:      env.Error.Code,
+		Status:    status,
+		Message:   env.Error.Message,
+		RequestID: requestID,
+		Retryable: retryable,
+		Resource:  env.Error.Resource,
+		Fields:    env.Error.Fields,
+		Retry:     env.Error.Retry,
+		DocURL:    env.Error.DocURL,
+	}
 }
 
 func camelizeMap(in map[string]any) map[string]any {
