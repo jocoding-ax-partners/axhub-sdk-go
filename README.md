@@ -5,7 +5,7 @@ AX Hub Go SDK for `https://api.axhub.ai`. It gives agents one small client, gene
 ## Install
 
 ```bash
-go get github.com/jocoding-ax-partners/axhub-sdk-go@v0.2.0
+go get github.com/jocoding-ax-partners/axhub-sdk-go@v0.3.1
 ```
 
 ## Required environment for agent work
