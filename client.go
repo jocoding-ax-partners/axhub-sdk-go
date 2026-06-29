@@ -294,22 +294,33 @@ func noRedirectClient(hc *http.Client) *http.Client {
 	return &clone
 }
 
+type errorPayload struct {
+	Category       string       `json:"category"`
+	Code           string       `json:"code"`
+	Message        string       `json:"message"`
+	RequestID      string       `json:"request_id"`
+	RequestIDCamel string       `json:"requestId"`
+	Retryable      *bool        `json:"retryable"`
+	Resource       string       `json:"resource"`
+	Fields         []FieldError `json:"fields"`
+	Retry          *RetryInfo   `json:"retry"`
+	DocURL         string       `json:"doc_url"`
+}
+
 func parseError(status int, raw []byte) error {
 	var env struct {
-		Error struct {
-			Category       string       `json:"category"`
-			Code           string       `json:"code"`
-			Message        string       `json:"message"`
-			RequestID      string       `json:"request_id"`
-			RequestIDCamel string       `json:"requestId"`
-			Retryable      *bool        `json:"retryable"`
-			Resource       string       `json:"resource"`
-			Fields         []FieldError `json:"fields"`
-			Retry          *RetryInfo   `json:"retry"`
-			DocURL         string       `json:"doc_url"`
-		} `json:"error"`
+		Error errorPayload `json:"error"`
 	}
 	_ = json.Unmarshal(raw, &env)
+	// W2: non-envelope errors arrive as a bare {code,message,...} at the root
+	// (no "error" wrapper, e.g. some 428 preconditions). Fall back to a root-level
+	// parse so the real code/category survive instead of masking as http_<status>.
+	if env.Error.Code == "" {
+		var root errorPayload
+		if json.Unmarshal(raw, &root) == nil && root.Code != "" {
+			env.Error = root
+		}
+	}
 	if env.Error.Code == "" {
 		env.Error.Code = fmt.Sprintf("http_%d", status)
 	}
