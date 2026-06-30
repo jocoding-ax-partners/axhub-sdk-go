@@ -60,7 +60,7 @@ func TestRegressionTenantRequiredBeforeRequest(t *testing.T) {
 }
 
 func TestRegressionErrorMappingAndRouteCoverage(t *testing.T) {
-	if len(Routes) != 228 {
+	if len(Routes) != 222 {
 		t.Fatalf("route coverage drift: got %d", len(Routes))
 	}
 	if len(ErrorCodes) != 86 {

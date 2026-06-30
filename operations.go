@@ -636,24 +636,6 @@ func (x *DataClient) SchemaPostApiV1MePersonalAccessTokens(ctx context.Context, 
 func (x *DataClient) SchemaDeleteApiV1MePersonalAccessTokensByPatID(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "schemaDeleteApiV1MePersonalAccessTokensByPatID", params)
 }
-func (x *DataClient) SchemaGetDataByTenantSlugByAppSlugByTable(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetDataByTenantSlugByAppSlugByTable", params)
-}
-func (x *DataClient) SchemaPostDataByTenantSlugByAppSlugByTable(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaPostDataByTenantSlugByAppSlugByTable", params)
-}
-func (x *DataClient) SchemaGetDataByTenantSlugByAppSlugByTableCount(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetDataByTenantSlugByAppSlugByTableCount", params)
-}
-func (x *DataClient) SchemaDeleteDataByTenantSlugByAppSlugByTableById(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaDeleteDataByTenantSlugByAppSlugByTableById", params)
-}
-func (x *DataClient) SchemaGetDataByTenantSlugByAppSlugByTableById(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetDataByTenantSlugByAppSlugByTableById", params)
-}
-func (x *DataClient) SchemaPatchDataByTenantSlugByAppSlugByTableById(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaPatchDataByTenantSlugByAppSlugByTableById", params)
-}
 
 type DeploymentsClient struct{ client *Client }
 func (c *Client) Deployments() *DeploymentsClient { return &DeploymentsClient{client: c} }
