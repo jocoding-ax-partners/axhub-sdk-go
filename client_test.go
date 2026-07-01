@@ -60,10 +60,10 @@ func TestRegressionTenantRequiredBeforeRequest(t *testing.T) {
 }
 
 func TestRegressionErrorMappingAndRouteCoverage(t *testing.T) {
-	if len(Routes) != 185 {
+	if len(Routes) != 232 {
 		t.Fatalf("route coverage drift: got %d", len(Routes))
 	}
-	if len(ErrorCodes) != 58 {
+	if len(ErrorCodes) != 101 {
 		t.Fatalf("error code drift: got %d", len(ErrorCodes))
 	}
 	info, ok := ErrorCodes["slug_taken"]
@@ -209,6 +209,31 @@ func TestRegressionErrorFullFieldDecode(t *testing.T) {
 	}
 	if axErr.Fields[1].Name != "name" || axErr.Fields[1].Code != "required" || axErr.Fields[1].Message != "" {
 		t.Fatalf("fields[1] drift: %#v", axErr.Fields[1])
+	}
+}
+
+func TestRegression428NonEnvelopeErrorPreservesCode(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(428)
+		// Non-envelope: bare {code,message} at the root, no "error" wrapper (W2).
+		_, _ = w.Write([]byte(`{"code":"confirm_required","message":"confirmation required"}`))
+	}))
+	defer srv.Close()
+	client := NewClient(Config{BaseURL: srv.URL})
+	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/apps/app_1", nil, nil, false)
+	axErr, ok := err.(*AxHubError)
+	if !ok {
+		t.Fatalf("expected *AxHubError, got %T: %v", err, err)
+	}
+	if axErr.Code != "confirm_required" {
+		t.Fatalf("W2 non-envelope code not preserved: got %q, want confirm_required (masked as http_428?)", axErr.Code)
+	}
+	if axErr.Status != 428 {
+		t.Fatalf("status drift: got %d, want 428", axErr.Status)
+	}
+	if axErr.Message != "confirmation required" {
+		t.Fatalf("message drift: %q", axErr.Message)
 	}
 }
 

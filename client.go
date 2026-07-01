@@ -35,10 +35,6 @@ type Client struct {
 	tokenType                                          TokenType
 	http                                               *http.Client
 	Apps                                               *AppsClient
-	// schemaCache backs the ergonomic data layer's Data().Discover(); it lives
-	// on the root client so discover() across separate Tenant().App() chains
-	// shares one cache (mirrors the node single per-SDK DataClient cache).
-	dataSchemaCache *SchemaCache
 }
 type AppsClient struct{ client *Client }
 
@@ -54,7 +50,6 @@ func NewClient(cfg Config) *Client {
 	hc = noRedirectClient(hc)
 	c := &Client{baseURL: base, token: cfg.Token, tokenType: cfg.TokenType, defaultTenantID: cfg.DefaultTenantID, defaultTenantSlug: cfg.DefaultTenantSlug, http: hc}
 	c.Apps = &AppsClient{client: c}
-	c.dataSchemaCache = NewSchemaCache(SchemaCacheOptions{})
 	return c
 }
 func (c *Client) BaseURL() string { return c.baseURL }
@@ -107,33 +102,9 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 	return map[string]any{"value": camelize(decoded)}, nil
 }
 
-// requestRaw is the data-layer transport: a path-based request that returns the
-// decoded JSON WITHOUT snake->camel rewriting, so dynamic-table row data and the
-// list envelope come back verbatim (mirrors python request_raw). When
-// camelizeResponse is true the response IS camelized — discover() uses that so
-// `tableName`/`table_name` both resolve on the inspect metadata payload.
-func (c *Client) requestRaw(ctx context.Context, method, path string, query url.Values, body any, camelizeResponse bool) (map[string]any, error) {
-	decoded, err := c.doHTTP(ctx, method, path, query, body, false)
-	if err != nil {
-		return nil, err
-	}
-	m, ok := decoded.(map[string]any)
-	if !ok {
-		if decoded == nil {
-			return map[string]any{}, nil
-		}
-		return map[string]any{"value": decoded}, nil
-	}
-	if camelizeResponse {
-		return camelizeMap(m), nil
-	}
-	return m, nil
-}
-
-// doHTTP performs auth + request-id + body encoding + status handling shared by
-// the operation-id transport (Request) and the data-layer transport
-// (requestRaw). It returns the decoded JSON body (any), leaving camelize policy
-// to the caller.
+// doHTTP performs auth + request-id + body encoding + status handling for the
+// operation-id transport (Request). It returns the decoded JSON body (any),
+// leaving camelize policy to the caller.
 func (c *Client) doHTTP(ctx context.Context, method, path string, query url.Values, body any, formEncoded bool) (any, error) {
 	u, err := url.Parse(c.baseURL + path)
 	if err != nil {
@@ -294,22 +265,33 @@ func noRedirectClient(hc *http.Client) *http.Client {
 	return &clone
 }
 
+type errorPayload struct {
+	Category       string       `json:"category"`
+	Code           string       `json:"code"`
+	Message        string       `json:"message"`
+	RequestID      string       `json:"request_id"`
+	RequestIDCamel string       `json:"requestId"`
+	Retryable      *bool        `json:"retryable"`
+	Resource       string       `json:"resource"`
+	Fields         []FieldError `json:"fields"`
+	Retry          *RetryInfo   `json:"retry"`
+	DocURL         string       `json:"doc_url"`
+}
+
 func parseError(status int, raw []byte) error {
 	var env struct {
-		Error struct {
-			Category       string       `json:"category"`
-			Code           string       `json:"code"`
-			Message        string       `json:"message"`
-			RequestID      string       `json:"request_id"`
-			RequestIDCamel string       `json:"requestId"`
-			Retryable      *bool        `json:"retryable"`
-			Resource       string       `json:"resource"`
-			Fields         []FieldError `json:"fields"`
-			Retry          *RetryInfo   `json:"retry"`
-			DocURL         string       `json:"doc_url"`
-		} `json:"error"`
+		Error errorPayload `json:"error"`
 	}
 	_ = json.Unmarshal(raw, &env)
+	// W2: non-envelope errors arrive as a bare {code,message,...} at the root
+	// (no "error" wrapper, e.g. some 428 preconditions). Fall back to a root-level
+	// parse so the real code/category survive instead of masking as http_<status>.
+	if env.Error.Code == "" {
+		var root errorPayload
+		if json.Unmarshal(raw, &root) == nil && root.Code != "" {
+			env.Error = root
+		}
+	}
 	if env.Error.Code == "" {
 		env.Error.Code = fmt.Sprintf("http_%d", status)
 	}

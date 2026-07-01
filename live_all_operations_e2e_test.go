@@ -49,7 +49,7 @@ func TestLiveAllGeneratedOperationFacadesHitProd(t *testing.T) {
 	tenantID := getenv("AXHUB_LIVE_TENANT_ID", "cc1e58f1-8e46-4ac7-96c1-190c4cdd5b70")
 	tenantSlug := getenv("AXHUB_LIVE_TENANT_SLUG", "test")
 	baseURL := getenv("AXHUB_LIVE_BASE_URL", "https://api.axhub.ai")
-	if len(Routes) != 185 {
+	if len(Routes) != 232 {
 		t.Fatalf("route coverage drift: %d", len(Routes))
 	}
 	ctx := context.Background()
@@ -130,7 +130,7 @@ func TestLiveAllGeneratedOperationFacadesHitProd(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if len(results) != 185 {
+	if len(results) != 232 {
 		t.Fatalf("total drift %d", len(results))
 	}
 	expectedDestructive := 0

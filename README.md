@@ -84,12 +84,7 @@ func main() {
 	})
 	if err != nil { log.Fatal(err) }
 
-	row, err := client.Data().SchemaPostDataByTenantSlugByAppSlugByTable(ctx, axhub.OperationParams{
-		PathParams: map[string]string{"tenantSlug": tenantSlug, "appSlug": slug, "table": table},
-		Body: map[string]any{"owner_id": userID, "title": "hello", "status": "new"},
-	})
-	if err != nil { log.Fatal(err) }
-	fmt.Println("created", appID, table, row["id"])
+	fmt.Println("created", appID, table)
 }
 ```
 
@@ -97,7 +92,7 @@ func main() {
 
 - High-level app create: `client.Apps.Create(ctx, body)` uses `defaultTenantID`.
 - Any route by operation id: `client.Request(ctx, operationID, pathParams, query, body)`.
-- Generated facade: `client.Data().SchemaPostDataByTenantSlugByAppSlugByTable(ctx, axhub.OperationParams{...})`.
+- Generated facade: `client.Data().SchemaPostApiV1AppsByAppIDTables(ctx, axhub.OperationParams{...})`.
 - Route inventory: `axhub.Routes`, `axhub.ContextRoutes`, and `axhub.ErrorCodes`.
 - Errors: use `var axErr *axhub.AxHubError; errors.As(err, &axErr)` and branch on `Code`, `Category`, `Status`, and `Retryable`.
 
@@ -116,19 +111,12 @@ Use the high-level `apps.create` helper for the first app, then use generated op
 | Add table grant | `schemaPostApiV1AppsByAppIDTablesByTableNameGrants` | `appID`, `tableName` | response has grant `id` |
 | List grants | `schemaGetApiV1AppsByAppIDTablesByTableNameGrants` | `appID`, `tableName` | list contains grant `id` |
 | Revoke/delete grant | `schemaDeleteApiV1AppsByAppIDTablesByTableNameGrantsByGrantID` | `appID`, `tableName`, `grantID` | list still contains grant with `revokedAt` set |
-| Insert row | `schemaPostDataByTenantSlugByAppSlugByTable` | `tenantSlug`, `appSlug`, `table` | response has row `id` and submitted fields |
-| Get row | `schemaGetDataByTenantSlugByAppSlugByTableById` | `tenantSlug`, `appSlug`, `table`, `id` | response row `id` matches |
-| Update row | `schemaPatchDataByTenantSlugByAppSlugByTableById` | `tenantSlug`, `appSlug`, `table`, `id` | response contains patched fields |
-| List rows | `schemaGetDataByTenantSlugByAppSlugByTable` | `tenantSlug`, `appSlug`, `table` | `items` contains row `id` |
-| Count rows | `schemaGetDataByTenantSlugByAppSlugByTableCount` | `tenantSlug`, `appSlug`, `table` | `count` matches expected fixture count |
 | Browse admin rows | `schemaGetApiV1AppsByAppIDTablesByTableNameRows` | `appID`, `tableName` | response has `rows` and `columns` arrays |
-| Delete row | `schemaDeleteDataByTenantSlugByAppSlugByTableById` | `tenantSlug`, `appSlug`, `table`, `id` | follow-up get returns `404` or `410` |
 | Delete table | `schemaDeleteApiV1AppsByAppIDTablesByTableName` | `appID`, `tableName` | follow-up inspect returns `404` or `410` |
 | Delete app | `appsDeleteApiV1AppsByAppID`, then `appsDeleteApiV1AppsByAppIDPermanent` | `appID` | app is soft-deleted, then permanently deleted |
 
 Important semantics from live QA:
 
-- Row delete is hard enough for client assertions: a follow-up row get returns `404 not_found` or `410`.
 - Table delete is hard enough for client assertions: a follow-up table inspect returns `404 not_found` or `410`.
 - Table grant delete is a soft revoke: the grant can remain in `listGrants`, but the same grant id must have `revokedAt` set. Do not assert disappearance.
 - Deployment creation without a connected git/bootstrap source can return a precondition-style 4xx. That verifies SDK error handling, not a deploy bug.
