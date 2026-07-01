@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"echo \\\"=== step2 tail (PASS/ok) ===\\\"; rtk grep -E '^--- PASS|^--- FAIL|^PASS|^FAIL|^ok |^\\\\?' /private/tmp/claude-501/-Users-wongil-Desktop-work-jocoding-sdk/464e8df1-e181-43c1-b41b-27b48...",
+  "error": "Exit code 1\n=== step2 tail (PASS/ok) ===\n--- PASS: TestRegressionOAuthFormEncodingAndRedirectPolicy (0.00s)\n--- PASS: TestRegressionErrorFullFieldDecode (0.00s)\n--- PASS: TestRegression428NonEnvelopeErrorPreservesCode (0.00s)\n--- PASS: TestRegression429RetryAfterBackoffSucceeds (0.00s)\n--- PASS: TestRegression429RetriesExhaustReturnError (0.00s)\n--- PASS: TestConformanceVectors (120.05s)\nPASS\nok  \tgithub.com/jocoding-ax-partners/axhub-sdk-go\t120.415s\n\n=== FAIL count in step2 (should be 0) ===\n0",
+  "timestamp": "2026-07-01T06:49:20.892Z",
+  "retry_count": 1
+}

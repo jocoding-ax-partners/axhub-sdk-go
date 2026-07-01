@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd /Users/wongil/Desktop/work/jocoding/sdk/axhub-sdk-go\\necho \\\"=== go unit suite (warm cache; skip Live/network e2e) ===\\\"\\ngo test . -count=1 -timeout 150s -skip 'Live' 2>&1 | tail -30; ...",
+  "error": "Exit code 143\nCommand timed out after 3m 20s\n=== go unit suite (warm cache; skip Live/network e2e) ===",
+  "timestamp": "2026-06-29T07:09:48.055Z",
+  "retry_count": 1
+}
