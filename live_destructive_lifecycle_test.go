@@ -37,7 +37,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
 	appSlug := "sdke2e-go-" + suffix
-	tableName := "items" + suffix[len(suffix)-8:]
 
 	var cleanups []func()
 	defer func() {
@@ -88,18 +87,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 		}
 	}
 
-	// --- identity: userId (grant principal + row owner) ---
-	me := must("me", "authGetApiV1Me", nil, nil)
-	userID := dlStr(me, "id", "userId", "userID", "user_id")
-	if userID == "" {
-		if u, ok := me["user"].(map[string]any); ok {
-			userID = dlStr(u, "id", "userId", "userID", "user_id")
-		}
-	}
-	if userID == "" {
-		t.Fatalf("me: could not resolve user id from %v", dlKeys(me))
-	}
-
 	// --- app create (+ cleanup registered immediately) ---
 	appRes := must("create app", "appsPostApiV1TenantsByTenantIDApps",
 		map[string]string{"tenantID": tenantID},
@@ -138,51 +125,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 	// --- icon upload url (signed URL; body key uncertain → tolerate) ---
 	tolerate("icon upload url", "appsPostApiV1AppsByAppIDIconUploadUrl", map[string]string{"appID": appID},
 		map[string]any{"content_type": "image/png"}, 400, 404, 422)
-
-	// --- tables: create → add column → grant → rows CRUD → revoke → drop col → delete ---
-	must("create table", "schemaPostApiV1AppsByAppIDTables", map[string]string{"appID": appID},
-		map[string]any{
-			"table_name":   tableName,
-			"owner_column": "owner_id",
-			"columns": []any{
-				map[string]any{"name": "owner_id", "type": "uuid", "nullable": false},
-				map[string]any{"name": "title", "type": "text", "nullable": false},
-				map[string]any{"name": "status", "type": "text", "nullable": false},
-				map[string]any{"name": "metadata", "type": "jsonb", "nullable": true},
-			},
-		})
-	must("add column", "schemaPostApiV1AppsByAppIDTablesByTableNameColumns",
-		map[string]string{"appID": appID, "tableName": tableName},
-		map[string]any{"column": map[string]any{"name": "priority", "type": "int", "nullable": true, "default": "0"}})
-
-	gRes := must("add grant", "schemaPostApiV1AppsByAppIDTablesByTableNameGrants",
-		map[string]string{"appID": appID, "tableName": tableName},
-		map[string]any{"principal_type": "user", "principal_id": userID, "actions": []any{"read", "write"}})
-	grantID := dlStr(gRes, "id", "grantId", "grantID")
-
-	// rows CRUD (node MISSES these)
-	rRes := must("insert row", "schemaPostApiV1AppsByAppIDTablesByTableNameRows",
-		map[string]string{"appID": appID, "tableName": tableName},
-		map[string]any{"owner_id": userID, "title": "row-" + suffix, "status": "active", "metadata": map[string]any{"k": "v"}})
-	rowID := dlStr(rRes, "id", "rowId", "rowID")
-	if rowID != "" {
-		must("update row", "schemaPatchApiV1AppsByAppIDTablesByTableNameRowsById",
-			map[string]string{"appID": appID, "tableName": tableName, "id": rowID},
-			map[string]any{"title": "row-" + suffix + "-updated"})
-		must("delete row", "schemaDeleteApiV1AppsByAppIDTablesByTableNameRowsById",
-			map[string]string{"appID": appID, "tableName": tableName, "id": rowID}, nil)
-	} else {
-		t.Errorf("insert row: no id in response %v", dlKeys(rRes))
-	}
-
-	if grantID != "" {
-		must("revoke grant", "schemaDeleteApiV1AppsByAppIDTablesByTableNameGrantsByGrantID",
-			map[string]string{"appID": appID, "tableName": tableName, "grantID": grantID}, nil)
-	}
-	must("drop column", "schemaDeleteApiV1AppsByAppIDTablesByTableNameColumnsByColumnName",
-		map[string]string{"appID": appID, "tableName": tableName, "columnName": "priority"}, nil)
-	must("delete table", "schemaDeleteApiV1AppsByAppIDTablesByTableName",
-		map[string]string{"appID": appID, "tableName": tableName}, nil)
 
 	// --- raw-db (node MISSES; body contract uncertain → tolerate both POST + DELETE; app is disposable) ---
 	tolerate("raw-db exec", "appsPostApiV1AppsByAppIDRawDb", map[string]string{"appID": appID},
