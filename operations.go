@@ -44,6 +44,9 @@ func (x *AppsClient) AppsPostApiV1AppsByAppIDAccess(ctx context.Context, params 
 func (x *AppsClient) AppsGetApiV1AppsByAppIDAccessMe(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsGetApiV1AppsByAppIDAccessMe", params)
 }
+func (x *AppsClient) AppsPostApiV1AppsByAppIDArchive(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "appsPostApiV1AppsByAppIDArchive", params)
+}
 func (x *AppsClient) AppsGetApiV1AppsByAppIDComments(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsGetApiV1AppsByAppIDComments", params)
 }
@@ -94,6 +97,9 @@ func (x *AppsClient) AppsDeleteApiV1AppsByAppIDRawDb(ctx context.Context, params
 }
 func (x *AppsClient) AppsPostApiV1AppsByAppIDRawDb(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsPostApiV1AppsByAppIDRawDb", params)
+}
+func (x *AppsClient) AppsPostApiV1AppsByAppIDReactivate(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "appsPostApiV1AppsByAppIDReactivate", params)
 }
 func (x *AppsClient) AppsPostApiV1AppsByAppIDResume(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsPostApiV1AppsByAppIDResume", params)
@@ -424,6 +430,15 @@ func (x *TenantsClient) TenantsPostApiV1TenantsByTenantIDMembersByMembershipIDRe
 func (x *TenantsClient) TenantsPostApiV1TenantsByTenantIDMembersByMembershipIDRestoreScim(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "tenantsPostApiV1TenantsByTenantIDMembersByMembershipIDRestoreScim", params)
 }
+func (x *TenantsClient) TenantsDeleteApiV1TenantsByTenantIDMembersByUserIDSeat(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "tenantsDeleteApiV1TenantsByTenantIDMembersByUserIDSeat", params)
+}
+func (x *TenantsClient) TenantsPostApiV1TenantsByTenantIDMembersByUserIDSeat(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "tenantsPostApiV1TenantsByTenantIDMembersByUserIDSeat", params)
+}
+func (x *TenantsClient) TenantsGetApiV1TenantsByTenantIDMembersDirectory(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "tenantsGetApiV1TenantsByTenantIDMembersDirectory", params)
+}
 func (x *TenantsClient) TenantsGetApiV1TenantsByTenantIDScimConnection(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "tenantsGetApiV1TenantsByTenantIDScimConnection", params)
 }
@@ -520,8 +535,17 @@ func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDConnectorsByConnectorIDR
 func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDConnectorsByConnectorIDTestConnection(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDConnectorsByConnectorIDTestConnection", params)
 }
+func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDConnectorsOauthGoogleFinalize(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDConnectorsOauthGoogleFinalize", params)
+}
+func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDConnectorsOauthGoogleStart(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDConnectorsOauthGoogleStart", params)
+}
 func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDGatewayDocumentInvoke(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDGatewayDocumentInvoke", params)
+}
+func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDGatewayFileInvoke(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDGatewayFileInvoke", params)
 }
 func (x *GatewayClient) GatewayPostApiV1TenantsByTenantIDGatewayInvoke(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "gatewayPostApiV1TenantsByTenantIDGatewayInvoke", params)
@@ -543,6 +567,9 @@ func (x *GatewayClient) GatewayGetApiV1TenantsByTenantIDMeConnectorsByConnectorI
 }
 func (x *GatewayClient) ConfigGetConfigPublic(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "configGetConfigPublic", params)
+}
+func (x *GatewayClient) GatewayGetOauthGoogleCallback(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "gatewayGetOauthGoogleCallback", params)
 }
 
 type CostClient struct{ client *Client }
@@ -693,6 +720,9 @@ func (x *DeploymentsClient) DeployDeleteApiV1AppsByAppIDStaging(ctx context.Cont
 }
 func (x *DeploymentsClient) DeployPutApiV1AppsByAppIDStaging(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "deployPutApiV1AppsByAppIDStaging", params)
+}
+func (x *DeploymentsClient) DeployPostApiV1GitGithubComplete(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "deployPostApiV1GitGithubComplete", params)
 }
 func (x *DeploymentsClient) DeployGetApiV1GithubAccounts(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "deployGetApiV1GithubAccounts", params)
