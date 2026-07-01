@@ -609,51 +609,6 @@ func (x *DataClient) SchemaGetApiV1AppsByAppIDDbTables(ctx context.Context, para
 func (x *DataClient) SchemaGetApiV1AppsByAppIDDbTablesByTableRows(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "schemaGetApiV1AppsByAppIDDbTablesByTableRows", params)
 }
-func (x *DataClient) SchemaGetApiV1AppsByAppIDTables(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetApiV1AppsByAppIDTables", params)
-}
-func (x *DataClient) SchemaPostApiV1AppsByAppIDTables(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaPostApiV1AppsByAppIDTables", params)
-}
-func (x *DataClient) SchemaDeleteApiV1AppsByAppIDTablesByTableName(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaDeleteApiV1AppsByAppIDTablesByTableName", params)
-}
-func (x *DataClient) SchemaGetApiV1AppsByAppIDTablesByTableName(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetApiV1AppsByAppIDTablesByTableName", params)
-}
-func (x *DataClient) SchemaPostApiV1AppsByAppIDTablesByTableNameColumns(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaPostApiV1AppsByAppIDTablesByTableNameColumns", params)
-}
-func (x *DataClient) SchemaDeleteApiV1AppsByAppIDTablesByTableNameColumnsByColumnName(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaDeleteApiV1AppsByAppIDTablesByTableNameColumnsByColumnName", params)
-}
-func (x *DataClient) SchemaGetApiV1AppsByAppIDTablesByTableNameGrants(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetApiV1AppsByAppIDTablesByTableNameGrants", params)
-}
-func (x *DataClient) SchemaPostApiV1AppsByAppIDTablesByTableNameGrants(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaPostApiV1AppsByAppIDTablesByTableNameGrants", params)
-}
-func (x *DataClient) SchemaDeleteApiV1AppsByAppIDTablesByTableNameGrantsByGrantID(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaDeleteApiV1AppsByAppIDTablesByTableNameGrantsByGrantID", params)
-}
-func (x *DataClient) SchemaGetApiV1AppsByAppIDTablesByTableNameRows(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetApiV1AppsByAppIDTablesByTableNameRows", params)
-}
-func (x *DataClient) SchemaPostApiV1AppsByAppIDTablesByTableNameRows(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaPostApiV1AppsByAppIDTablesByTableNameRows", params)
-}
-func (x *DataClient) SchemaDeleteApiV1AppsByAppIDTablesByTableNameRowsById(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaDeleteApiV1AppsByAppIDTablesByTableNameRowsById", params)
-}
-func (x *DataClient) SchemaPatchApiV1AppsByAppIDTablesByTableNameRowsById(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaPatchApiV1AppsByAppIDTablesByTableNameRowsById", params)
-}
-func (x *DataClient) SchemaGetApiV1AppsByAppIDTablesCheckAvailability(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetApiV1AppsByAppIDTablesCheckAvailability", params)
-}
-func (x *DataClient) SchemaGetApiV1AppsByAppIDTablesColumnTypes(ctx context.Context, params OperationParams) (map[string]any, error) {
-	return x.client.Operation(ctx, "schemaGetApiV1AppsByAppIDTablesColumnTypes", params)
-}
 func (x *DataClient) SchemaGetApiV1MePersonalAccessTokens(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "schemaGetApiV1MePersonalAccessTokens", params)
 }
