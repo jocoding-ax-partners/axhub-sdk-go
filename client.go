@@ -92,12 +92,21 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 		return nil, err
 	}
 	// The operation-id route table camelizes snake_case response keys so the
-	// conformance vectors can assert camelCase fields.
+	// conformance vectors can assert camelCase fields. OAuth token-style
+	// responses preserve RFC 6749 standard keys in snake_case (contract shared
+	// with the python SDK's _camelize_oauth_response).
+	oauthSnake := isOauthSnakeCaseResponseOperation(operationID)
 	if m, ok := decoded.(map[string]any); ok {
+		if oauthSnake {
+			return camelizeOauthMap(m), nil
+		}
 		return camelizeMap(m), nil
 	}
 	if decoded == nil {
 		return map[string]any{}, nil
+	}
+	if oauthSnake {
+		return map[string]any{"value": camelizeOauth(decoded)}, nil
 	}
 	return map[string]any{"value": camelize(decoded)}, nil
 }
@@ -245,6 +254,51 @@ var formEncodedOperations = map[string]bool{
 }
 
 func isFormEncodedOperation(operationID string) bool { return formEncodedOperations[operationID] }
+
+// oauthSnakeCaseResponseOperations lists token-style OAuth operations whose
+// responses keep RFC 6749/8628 standard keys in snake_case. Must match the
+// python SDK's _OAUTH_RESPONSE_SNAKE_CASE_OPERATIONS.
+var oauthSnakeCaseResponseOperations = map[string]bool{
+	"authPostOauthDeviceAuthorization": true,
+	"authPostOauthToken":               true,
+}
+
+func isOauthSnakeCaseResponseOperation(operationID string) bool {
+	return oauthSnakeCaseResponseOperations[operationID]
+}
+
+// oauthResponseSnakeKeys are the RFC 6749 standard response keys preserved
+// verbatim. Must match the python SDK's _OAUTH_RESPONSE_SNAKE_KEYS.
+var oauthResponseSnakeKeys = map[string]bool{
+	"access_token": true, "token_type": true, "expires_in": true, "refresh_token": true,
+	"id_token": true, "scope": true, "resource": true, "tenant": true,
+}
+
+func camelizeOauthMap(in map[string]any) map[string]any {
+	out := map[string]any{}
+	for k, v := range in {
+		key := k
+		if !oauthResponseSnakeKeys[k] {
+			key = snakeToCamel(k)
+		}
+		out[key] = camelizeOauth(v)
+	}
+	return out
+}
+
+func camelizeOauth(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		return camelizeOauthMap(t)
+	case []any:
+		for i, x := range t {
+			t[i] = camelizeOauth(x)
+		}
+		return t
+	default:
+		return v
+	}
+}
 
 func formValues(body any) url.Values {
 	values := url.Values{}

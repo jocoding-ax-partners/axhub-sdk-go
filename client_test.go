@@ -158,7 +158,8 @@ func TestRegressionOAuthFormEncodingAndRedirectPolicy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("oauth token form request failed: %v", err)
 	}
-	if got["accessToken"] != "tok_go" {
+	// RFC 6749: token-style responses keep standard keys in snake_case.
+	if got["access_token"] != "tok_go" || got["accessToken"] != nil {
 		t.Fatalf("oauth token response drift: %#v", got)
 	}
 	if !strings.HasPrefix(tokenContentType, "application/x-www-form-urlencoded") || !strings.Contains(tokenBody, "grant_type=client_credentials") || strings.Contains(tokenBody, "{") {
