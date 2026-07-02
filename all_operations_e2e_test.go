@@ -13,7 +13,7 @@ import (
 )
 
 func TestAllGeneratedOperationFacadesMakeHTTPRequests(t *testing.T) {
-	if len(Routes) != 217 {
+	if len(Routes) != 85 {
 		t.Fatalf("route coverage drift: %d", len(Routes))
 	}
 
@@ -51,7 +51,7 @@ func TestAllGeneratedOperationFacadesMakeHTTPRequests(t *testing.T) {
 	c := NewClient(Config{BaseURL: server.URL, Token: "pat_e2e", TokenType: TokenTypePAT})
 	contexts := map[string]any{
 		"apps": c.Apps, "identity": c.Identity(), "tenants": c.Tenants(), "authz": c.Authz(),
-		"audit": c.Audit(), "gateway": c.Gateway(), "cost": c.Cost(), "data": c.Data(), "deployments": c.Deployments(),
+		"audit": c.Audit(), "gateway": c.Gateway(), "data": c.Data(), "deployments": c.Deployments(),
 	}
 	for _, route := range Routes {
 		target := contexts[contextName(route)]

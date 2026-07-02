@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -87,26 +86,17 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 			values.Set(k, v)
 		}
 	}
-	decoded, err := c.doHTTP(ctx, route.Method, path, values, body, isFormEncodedOperation(operationID))
+	decoded, err := c.doHTTP(ctx, route.Method, path, values, body)
 	if err != nil {
 		return nil, err
 	}
 	// The operation-id route table camelizes snake_case response keys so the
-	// conformance vectors can assert camelCase fields. OAuth token-style
-	// responses preserve RFC 6749 standard keys in snake_case (contract shared
-	// with the python SDK's _camelize_oauth_response).
-	oauthSnake := isOauthSnakeCaseResponseOperation(operationID)
+	// conformance vectors can assert camelCase fields.
 	if m, ok := decoded.(map[string]any); ok {
-		if oauthSnake {
-			return camelizeOauthMap(m), nil
-		}
 		return camelizeMap(m), nil
 	}
 	if decoded == nil {
 		return map[string]any{}, nil
-	}
-	if oauthSnake {
-		return map[string]any{"value": camelizeOauth(decoded)}, nil
 	}
 	return map[string]any{"value": camelize(decoded)}, nil
 }
@@ -114,7 +104,7 @@ func (c *Client) Request(ctx context.Context, operationID string, pathParams map
 // doHTTP performs auth + request-id + body encoding + status handling for the
 // operation-id transport (Request). It returns the decoded JSON body (any),
 // leaving camelize policy to the caller.
-func (c *Client) doHTTP(ctx context.Context, method, path string, query url.Values, body any, formEncoded bool) (any, error) {
+func (c *Client) doHTTP(ctx context.Context, method, path string, query url.Values, body any) (any, error) {
 	u, err := url.Parse(c.baseURL + path)
 	if err != nil {
 		return nil, err
@@ -127,17 +117,12 @@ func (c *Client) doHTTP(ctx context.Context, method, path string, query url.Valu
 	var bodyBytes []byte
 	var contentType string
 	if body != nil {
-		if formEncoded {
-			bodyBytes = []byte(formValues(body).Encode())
-			contentType = "application/x-www-form-urlencoded"
-		} else {
-			raw, err := json.Marshal(body)
-			if err != nil {
-				return nil, err
-			}
-			bodyBytes = raw
-			contentType = "application/json"
+		raw, err := json.Marshal(body)
+		if err != nil {
+			return nil, err
 		}
+		bodyBytes = raw
+		contentType = "application/json"
 	}
 
 	// 429 backoff: honor the Retry-After header (seconds) and retry up to
@@ -246,70 +231,6 @@ func sleepWithContext(ctx context.Context, d time.Duration) error {
 var pathParamRe = regexp.MustCompile(`\{[^}]+\}`)
 
 func unresolvedPathParam(path string) bool { return pathParamRe.MatchString(path) }
-
-var formEncodedOperations = map[string]bool{
-	"authPostOauthDeviceAuthorization": true,
-	"authPostOauthRevoke":              true,
-	"authPostOauthToken":               true,
-}
-
-func isFormEncodedOperation(operationID string) bool { return formEncodedOperations[operationID] }
-
-// oauthSnakeCaseResponseOperations lists token-style OAuth operations whose
-// responses keep RFC 6749/8628 standard keys in snake_case. Must match the
-// python SDK's _OAUTH_RESPONSE_SNAKE_CASE_OPERATIONS.
-var oauthSnakeCaseResponseOperations = map[string]bool{
-	"authPostOauthDeviceAuthorization": true,
-	"authPostOauthToken":               true,
-}
-
-func isOauthSnakeCaseResponseOperation(operationID string) bool {
-	return oauthSnakeCaseResponseOperations[operationID]
-}
-
-// oauthResponseSnakeKeys are the RFC 6749 standard response keys preserved
-// verbatim. Must match the python SDK's _OAUTH_RESPONSE_SNAKE_KEYS.
-var oauthResponseSnakeKeys = map[string]bool{
-	"access_token": true, "token_type": true, "expires_in": true, "refresh_token": true,
-	"id_token": true, "scope": true, "resource": true, "tenant": true,
-}
-
-func camelizeOauthMap(in map[string]any) map[string]any {
-	out := map[string]any{}
-	for k, v := range in {
-		key := k
-		if !oauthResponseSnakeKeys[k] {
-			key = snakeToCamel(k)
-		}
-		out[key] = camelizeOauth(v)
-	}
-	return out
-}
-
-func camelizeOauth(v any) any {
-	switch t := v.(type) {
-	case map[string]any:
-		return camelizeOauthMap(t)
-	case []any:
-		for i, x := range t {
-			t[i] = camelizeOauth(x)
-		}
-		return t
-	default:
-		return v
-	}
-}
-
-func formValues(body any) url.Values {
-	values := url.Values{}
-	rv := reflect.ValueOf(body)
-	if rv.Kind() == reflect.Map {
-		for _, key := range rv.MapKeys() {
-			values.Set(fmt.Sprint(key.Interface()), fmt.Sprint(rv.MapIndex(key).Interface()))
-		}
-	}
-	return values
-}
 
 func noRedirectClient(hc *http.Client) *http.Client {
 	clone := *hc

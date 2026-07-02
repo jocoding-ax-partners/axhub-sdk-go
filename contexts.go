@@ -7,7 +7,6 @@ var ContextRoutes = map[string][]Route{
 	"authz": {},
 	"audit": {},
 	"gateway": {},
-	"cost": {},
 	"data": {},
 	"deployments": {},
 }
@@ -33,8 +32,6 @@ func contextName(route Route) string {
 		return "audit"
 	case "Gateway", "Config":
 		return "gateway"
-	case "Cost":
-		return "cost"
 	case "Schema":
 		return "data"
 	case "Deploy", "deploy":

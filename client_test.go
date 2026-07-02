@@ -3,10 +3,8 @@ package axhub
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -60,7 +58,7 @@ func TestRegressionTenantRequiredBeforeRequest(t *testing.T) {
 }
 
 func TestRegressionErrorMappingAndRouteCoverage(t *testing.T) {
-	if len(Routes) != 217 {
+	if len(Routes) != 85 {
 		t.Fatalf("route coverage drift: got %d", len(Routes))
 	}
 	if len(ErrorCodes) != 101 {
@@ -93,10 +91,13 @@ func TestRegressionErrorMetadataAndRedaction(t *testing.T) {
 }
 
 func TestRegressionEightContextCoverage(t *testing.T) {
-	want := []string{"apps", "identity", "tenants", "authz", "audit", "gateway", "cost", "data", "deployments"}
+	// 8 contexts per the developer-surface spec; audit is intentionally empty
+	// (no developer-surface ops in the 85-op allowlist) so assert registration,
+	// not non-emptiness.
+	want := []string{"apps", "identity", "tenants", "authz", "audit", "gateway", "data", "deployments"}
 	for _, name := range want {
-		if len(ContextRoutes[name]) == 0 {
-			t.Fatalf("missing context routes for %s", name)
+		if _, ok := ContextRoutes[name]; !ok {
+			t.Fatalf("missing context %s", name)
 		}
 	}
 }
@@ -104,10 +105,10 @@ func TestRegressionEightContextCoverage(t *testing.T) {
 func TestRegressionNonJSONSuccessAndScalarErrorBodies(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/auth/google_oauth2/start":
+		case "/config/public":
 			w.Header().Set("Content-Type", "text/html")
-			_, _ = w.Write([]byte("<html>oauth redirect target</html>"))
-		case "/oauth/token":
+			_, _ = w.Write([]byte("<html>not json</html>"))
+		case "/.well-known/jwks.json":
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(400)
 			_, _ = w.Write([]byte(`"invalid_request"`))
@@ -117,63 +118,17 @@ func TestRegressionNonJSONSuccessAndScalarErrorBodies(t *testing.T) {
 	}))
 	defer srv.Close()
 	client := NewClient(Config{BaseURL: srv.URL})
-	got, err := client.Request(context.Background(), "authGetAuthGoogleOauth2Start", nil, nil, nil)
+	got, err := client.Request(context.Background(), "configGetConfigPublic", nil, nil, nil)
 	if err != nil {
 		t.Fatalf("non-json success should not fail: %v", err)
 	}
-	if got["raw"] != "<html>oauth redirect target</html>" {
+	if got["raw"] != "<html>not json</html>" {
 		t.Fatalf("unexpected raw response: %#v", got)
 	}
-	_, err = client.Request(context.Background(), "authPostOauthToken", nil, nil, map[string]any{"noop": true})
+	_, err = client.Request(context.Background(), "authGetWellKnownJwksJson", nil, nil, nil)
 	axErr, ok := err.(*AxHubError)
 	if !ok || axErr.Status != 400 || axErr.Code != "http_400" {
 		t.Fatalf("scalar JSON error should become typed HTTP error: %#v", err)
-	}
-}
-
-func TestRegressionOAuthFormEncodingAndRedirectPolicy(t *testing.T) {
-	var tokenContentType, tokenBody string
-	redirectTargetHit := false
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/oauth/token":
-			tokenContentType = r.Header.Get("Content-Type")
-			raw, _ := io.ReadAll(r.Body)
-			tokenBody = string(raw)
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "tok_go", "token_type": "Bearer", "expires_in": 3600})
-		case "/auth/google_oauth2/start":
-			http.Redirect(w, r, "/redirect-target", http.StatusFound)
-		case "/redirect-target":
-			redirectTargetHit = true
-			w.WriteHeader(500)
-		default:
-			w.WriteHeader(404)
-		}
-	}))
-	defer srv.Close()
-
-	client := NewClient(Config{BaseURL: srv.URL, Token: "pat_secret", TokenType: TokenTypePAT})
-	got, err := client.Request(context.Background(), "authPostOauthToken", nil, nil, map[string]any{"grant_type": "client_credentials", "client_id": "cid"})
-	if err != nil {
-		t.Fatalf("oauth token form request failed: %v", err)
-	}
-	// RFC 6749: token-style responses keep standard keys in snake_case.
-	if got["access_token"] != "tok_go" || got["accessToken"] != nil {
-		t.Fatalf("oauth token response drift: %#v", got)
-	}
-	if !strings.HasPrefix(tokenContentType, "application/x-www-form-urlencoded") || !strings.Contains(tokenBody, "grant_type=client_credentials") || strings.Contains(tokenBody, "{") {
-		t.Fatalf("oauth token was not form-encoded content-type=%q body=%q", tokenContentType, tokenBody)
-	}
-	redirect, err := client.Request(context.Background(), "authGetAuthGoogleOauth2Start", nil, nil, nil)
-	if err != nil {
-		t.Fatalf("redirect response should be returned: %v", err)
-	}
-	if redirect["status"] != 302 || redirect["location"] != "/redirect-target" {
-		t.Fatalf("redirect response drift: %#v", redirect)
-	}
-	if redirectTargetHit {
-		t.Fatalf("redirect was followed; auth headers could leak to redirect target")
 	}
 }
 
@@ -185,7 +140,7 @@ func TestRegressionErrorFullFieldDecode(t *testing.T) {
 	}))
 	defer srv.Close()
 	client := NewClient(Config{BaseURL: srv.URL})
-	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/apps/app_1", nil, nil, false)
+	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/apps/app_1", nil, nil)
 	axErr, ok := err.(*AxHubError)
 	if !ok {
 		t.Fatalf("expected *AxHubError, got %T: %v", err, err)
@@ -222,7 +177,7 @@ func TestRegression428NonEnvelopeErrorPreservesCode(t *testing.T) {
 	}))
 	defer srv.Close()
 	client := NewClient(Config{BaseURL: srv.URL})
-	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/apps/app_1", nil, nil, false)
+	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/apps/app_1", nil, nil)
 	axErr, ok := err.(*AxHubError)
 	if !ok {
 		t.Fatalf("expected *AxHubError, got %T: %v", err, err)
@@ -252,7 +207,7 @@ func TestRegression429RetryAfterBackoffSucceeds(t *testing.T) {
 	}))
 	defer srv.Close()
 	client := NewClient(Config{BaseURL: srv.URL})
-	got, err := client.doHTTP(context.Background(), "GET", "/api/v1/ping", nil, nil, false)
+	got, err := client.doHTTP(context.Background(), "GET", "/api/v1/ping", nil, nil)
 	if err != nil {
 		t.Fatalf("expected retry to succeed, got error: %v", err)
 	}
@@ -275,7 +230,7 @@ func TestRegression429RetriesExhaustReturnError(t *testing.T) {
 	}))
 	defer srv.Close()
 	client := NewClient(Config{BaseURL: srv.URL})
-	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/ping", nil, nil, false)
+	_, err := client.doHTTP(context.Background(), "GET", "/api/v1/ping", nil, nil)
 	axErr, ok := err.(*AxHubError)
 	if !ok || axErr.Status != 429 {
 		t.Fatalf("expected 429 AxHubError after exhausting retries, got %T: %v", err, err)
