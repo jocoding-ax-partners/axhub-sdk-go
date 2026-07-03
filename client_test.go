@@ -58,10 +58,10 @@ func TestRegressionTenantRequiredBeforeRequest(t *testing.T) {
 }
 
 func TestRegressionErrorMappingAndRouteCoverage(t *testing.T) {
-	if len(Routes) != 85 {
+	if len(Routes) != 86 {
 		t.Fatalf("route coverage drift: got %d", len(Routes))
 	}
-	if len(ErrorCodes) != 101 {
+	if len(ErrorCodes) != 106 {
 		t.Fatalf("error code drift: got %d", len(ErrorCodes))
 	}
 	info, ok := ErrorCodes["slug_taken"]
@@ -92,7 +92,7 @@ func TestRegressionErrorMetadataAndRedaction(t *testing.T) {
 
 func TestRegressionEightContextCoverage(t *testing.T) {
 	// 8 contexts per the developer-surface spec; audit is intentionally empty
-	// (no developer-surface ops in the 85-op allowlist) so assert registration,
+	// (no developer-surface ops in the 86-op allowlist) so assert registration,
 	// not non-emptiness.
 	want := []string{"apps", "identity", "tenants", "authz", "audit", "gateway", "data", "deployments"}
 	for _, name := range want {

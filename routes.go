@@ -82,6 +82,7 @@ var Routes = []Route{
 	{Method: "GET", Path: "/api/v1/tenants/{tenantID}/me/connectors", Tag: "Gateway", OperationID: "gatewayGetApiV1TenantsByTenantIDMeConnectors"},
 	{Method: "GET", Path: "/api/v1/tenants/{tenantID}/me/connectors/{connectorID}/resources", Tag: "Gateway", OperationID: "gatewayGetApiV1TenantsByTenantIDMeConnectorsByConnectorIDResources"},
 	{Method: "GET", Path: "/api/v1/tenants/{tenantID}/me/grants", Tag: "Authorization", OperationID: "authorizationGetApiV1TenantsByTenantIDMeGrants"},
+	{Method: "GET", Path: "/api/v1/tenants/{tenantID}/org-directory", Tag: "Tenants", OperationID: "tenantsGetApiV1TenantsByTenantIDOrgDirectory"},
 	{Method: "GET", Path: "/api/v1/users/me/apps", Tag: "Apps", OperationID: "appsGetApiV1UsersMeApps"},
 	{Method: "POST", Path: "/auth/logout", Tag: "Auth", OperationID: "authPostAuthLogout"},
 	{Method: "POST", Path: "/auth/refresh", Tag: "Auth", OperationID: "authPostAuthRefresh"},

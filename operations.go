@@ -145,6 +145,9 @@ func (x *TenantsClient) TenantsGetApiV1Tenants(ctx context.Context, params Opera
 func (x *TenantsClient) TenantsGetApiV1TenantsByTenantID(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "tenantsGetApiV1TenantsByTenantID", params)
 }
+func (x *TenantsClient) TenantsGetApiV1TenantsByTenantIDOrgDirectory(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "tenantsGetApiV1TenantsByTenantIDOrgDirectory", params)
+}
 
 type AuthzClient struct{ client *Client }
 func (c *Client) Authz() *AuthzClient { return &AuthzClient{client: c} }
