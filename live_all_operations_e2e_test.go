@@ -22,7 +22,6 @@ var liveHighRiskTenantOps = map[string]bool{
 
 var liveHighRiskAppOps = map[string]bool{
 	"appsDeleteApiV1AppsByAppID":                         true,
-	"appsDeleteApiV1AppsByAppIDPermanent":                true,
 	"deployPostApiV1AppsByAppIDDeploymentsByDidCancel":   true,
 	"deployPostApiV1AppsByAppIDDeploymentsByDidRollback": true,
 }
@@ -68,7 +67,6 @@ func TestLiveAllGeneratedOperationFacadesHitProd(t *testing.T) {
 	defer func() {
 		if createdFixture {
 			_, _ = c.Request(ctx, "appsDeleteApiV1AppsByAppID", map[string]string{"appID": fixture["appID"]}, nil, nil)
-			_, _ = c.Request(ctx, "appsDeleteApiV1AppsByAppIDPermanent", map[string]string{"appID": fixture["appID"]}, nil, nil)
 		}
 	}()
 

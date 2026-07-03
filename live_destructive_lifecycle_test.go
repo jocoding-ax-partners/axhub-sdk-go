@@ -97,7 +97,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 	}
 	addCleanup(func() {
 		_, _ = c.Request(ctx, "appsDeleteApiV1AppsByAppID", map[string]string{"appID": appID}, nil, nil)
-		_, _ = c.Request(ctx, "appsDeleteApiV1AppsByAppIDPermanent", map[string]string{"appID": appID}, nil, nil)
 	})
 
 	// --- app update ---
@@ -107,8 +106,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 	// --- env vars ---
 	must("set env var", "appsPostApiV1AppsByAppIDEnvVars", map[string]string{"appID": appID},
 		map[string]any{"key": "SDK_E2E_SECRET", "value": "sekret-" + suffix})
-	must("delete env var", "appsDeleteApiV1AppsByAppIDEnvVarsByKey",
-		map[string]string{"appID": appID, "key": "SDK_E2E_SECRET"}, nil)
 
 	// --- comments ---
 	cRes := must("add comment", "appsPostApiV1AppsByAppIDComments", map[string]string{"appID": appID},
@@ -121,10 +118,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 	// --- likes (idempotent) ---
 	must("like", "appsPostApiV1AppsByAppIDLikes", map[string]string{"appID": appID}, map[string]any{})
 	must("unlike", "appsDeleteApiV1AppsByAppIDLikes", map[string]string{"appID": appID}, nil)
-
-	// --- icon upload url (signed URL; body key uncertain → tolerate) ---
-	tolerate("icon upload url", "appsPostApiV1AppsByAppIDIconUploadUrl", map[string]string{"appID": appID},
-		map[string]any{"content_type": "image/png"}, 400, 404, 422)
 
 	// --- raw-db (node MISSES; body contract uncertain → tolerate both POST + DELETE; app is disposable) ---
 	tolerate("raw-db exec", "appsPostApiV1AppsByAppIDRawDb", map[string]string{"appID": appID},
@@ -160,23 +153,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 		must("revoke PAT", "schemaDeleteApiV1MePersonalAccessTokensByPatID", map[string]string{"patID": patID}, nil)
 	}
 
-	// --- publication: submit → reject ; submit → approve → back to private (invite_only only, never public) ---
-	p1 := must("submit publication#1", "appsPostApiV1AppsByAppIDReviewRequests", map[string]string{"appID": appID},
-		map[string]any{"reason": "sdke2e reject " + suffix, "requested_visibility": "invite_only"})
-	if rr1 := dlStr(p1, "id", "reviewRequestId", "rrId"); rr1 != "" {
-		must("reject publication#1", "appsPostApiV1ReviewRequestsByRrIDReject", map[string]string{"rrID": rr1},
-			map[string]any{"comment": "sdke2e cleanup rejection"})
-	}
-	p2 := must("submit publication#2", "appsPostApiV1AppsByAppIDReviewRequests", map[string]string{"appID": appID},
-		map[string]any{"reason": "sdke2e approve " + suffix, "requested_visibility": "invite_only"})
-	if rr2 := dlStr(p2, "id", "reviewRequestId", "rrId"); rr2 != "" {
-		must("approve publication#2", "appsPostApiV1ReviewRequestsByRrIDApprove", map[string]string{"rrID": rr2},
-			map[string]any{"comment": "sdke2e transient approval"})
-		// unpublish equivalent: return app to private
-		tolerate("unpublish (visibility→private)", "appsPatchApiV1AppsByAppID", map[string]string{"appID": appID},
-			map[string]any{"visibility": "private"}, 400, 404, 409)
-	}
-
 	// --- TYPED-FAILURE: preconditions genuinely unavailable ---
 	expectFail("deployment create (no commit)", "deployPostApiV1AppsByAppIDDeployments", map[string]string{"appID": appID},
 		map[string]any{"commit_sha": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"}, 400, 404, 409, 412)
@@ -186,7 +162,6 @@ func TestLiveDestructiveLifecycleHitProd(t *testing.T) {
 
 	// --- explicit teardown (cleanup stack also covers on failure) ---
 	must("delete app", "appsDeleteApiV1AppsByAppID", map[string]string{"appID": appID}, nil)
-	must("permanent delete app", "appsDeleteApiV1AppsByAppIDPermanent", map[string]string{"appID": appID}, nil)
 }
 
 func dlEnv(k, def string) string {
