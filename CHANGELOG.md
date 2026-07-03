@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.10.0 — 2026-07-03
+
+### Added
+- `TenantsGetApiV1TenantsByTenantIDMembersDirectory` — `GET /api/v1/tenants/{tenantID}/members/directory`. 활성 멤버 디렉토리(가입 멤버만, email 제외 PII 축소 뷰). 각 행의 `groupId` 로 그룹별 필터가 가능하다. 호출 권한 tenant_member. node 에만 있던 표면을 6개 SDK 로 정렬.
+
 ## v0.9.0 — 2026-07-03
 
 ### Added

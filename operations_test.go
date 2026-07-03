@@ -97,6 +97,7 @@ func TestGeneratedOperationFacadesCoverAllRoutes(t *testing.T) {
         {"context": "gateway", "go": "GatewayGetApiV1TenantsByTenantIDMeConnectors"},
         {"context": "gateway", "go": "GatewayGetApiV1TenantsByTenantIDMeConnectorsByConnectorIDResources"},
         {"context": "authz", "go": "AuthorizationGetApiV1TenantsByTenantIDMeGrants"},
+        {"context": "tenants", "go": "TenantsGetApiV1TenantsByTenantIDMembersDirectory"},
         {"context": "tenants", "go": "TenantsGetApiV1TenantsByTenantIDOrgDirectory"},
         {"context": "apps", "go": "AppsGetApiV1UsersMeApps"},
         {"context": "identity", "go": "AuthPostAuthLogout"},
