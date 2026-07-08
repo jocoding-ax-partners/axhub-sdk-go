@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.12.0 — 2026-07-08
+
+### Added
+- 에러 카탈로그 106→117 — Google Workspace 조직도 연동(spec 109/113)·디렉터리 단일소스(spec 114) 에러 코드 11종 추가 (`google_domain_taken`, `directory_source_conflict`, `group_scim_managed` 등; backend 73e89024 re-pin).
+
 ## v0.11.0 — 2026-07-08
 
 ### Added
