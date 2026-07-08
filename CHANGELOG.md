@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.11.0 — 2026-07-08
+
+### Added
+- `apps.RawDb.Tables` / `apps.RawDb.TableRows` — raw DB 조회용 typed helper (read-only introspection). node SDK `sdk.apps.rawDb.*` 와 표면 정렬.
+
+### Changed
+- live QA harness 를 유지 표면에 정렬 (미노출 op 참조 제거).
 ## v0.10.1 — 2026-07-08
 
 ### Changed
