@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.10.1 — 2026-07-08
+
+### Changed
+- 테스트: live QA harness 를 현행 route surface 에 정렬 (기능 변화 없음).
+
 ## v0.10.0 — 2026-07-03
 
 ### Added
