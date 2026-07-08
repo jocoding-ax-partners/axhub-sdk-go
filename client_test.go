@@ -61,7 +61,7 @@ func TestRegressionErrorMappingAndRouteCoverage(t *testing.T) {
 	if len(Routes) != 87 {
 		t.Fatalf("route coverage drift: got %d", len(Routes))
 	}
-	if len(ErrorCodes) != 106 {
+	if len(ErrorCodes) != 117 {
 		t.Fatalf("error code drift: got %d", len(ErrorCodes))
 	}
 	info, ok := ErrorCodes["slug_taken"]
