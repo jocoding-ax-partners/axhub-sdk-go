@@ -13,7 +13,7 @@ import (
 )
 
 func TestAllGeneratedOperationFacadesMakeHTTPRequests(t *testing.T) {
-	if len(Routes) != 87 {
+	if len(Routes) != 97 {
 		t.Fatalf("route coverage drift: %d", len(Routes))
 	}
 

@@ -14,6 +14,18 @@ func (c *Client) Operation(ctx context.Context, operationID string, params Opera
 }
 
 
+func (x *AppsClient) AppsGetApiV1AccessRequests(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "appsGetApiV1AccessRequests", params)
+}
+func (x *AppsClient) AppsPostApiV1AccessRequests(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "appsPostApiV1AccessRequests", params)
+}
+func (x *AppsClient) AppsPatchApiV1AccessRequestsByIdApprove(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "appsPatchApiV1AccessRequestsByIdApprove", params)
+}
+func (x *AppsClient) AppsPatchApiV1AccessRequestsByIdReject(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "appsPatchApiV1AccessRequestsByIdReject", params)
+}
 func (x *AppsClient) AppsDeleteApiV1AppsByAppID(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "appsDeleteApiV1AppsByAppID", params)
 }
@@ -243,6 +255,9 @@ func (x *DeploymentsClient) DeployGetApiV1AppsByAppIDDeploymentsByDid(ctx contex
 func (x *DeploymentsClient) DeployPostApiV1AppsByAppIDDeploymentsByDidCancel(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "deployPostApiV1AppsByAppIDDeploymentsByDidCancel", params)
 }
+func (x *DeploymentsClient) DeployGetApiV1AppsByAppIDDeploymentsByDidDiagnoses(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "deployGetApiV1AppsByAppIDDeploymentsByDidDiagnoses", params)
+}
 func (x *DeploymentsClient) DeployPostApiV1AppsByAppIDDeploymentsByDidRollback(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "deployPostApiV1AppsByAppIDDeploymentsByDidRollback", params)
 }
@@ -302,5 +317,24 @@ func (x *DeploymentsClient) DeployGetApiV1TenantsByTenantIDAppBootstrapsByBootst
 }
 func (x *DeploymentsClient) DeployGetApiV1TenantsByTenantIDDeployments(ctx context.Context, params OperationParams) (map[string]any, error) {
 	return x.client.Operation(ctx, "deployGetApiV1TenantsByTenantIDDeployments", params)
+}
+
+type NotificationsClient struct{ client *Client }
+func (c *Client) Notifications() *NotificationsClient { return &NotificationsClient{client: c} }
+
+func (x *NotificationsClient) NotificationsPostApiV1AppMails(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "notificationsPostApiV1AppMails", params)
+}
+func (x *NotificationsClient) NotificationsPostApiV1AppNotifications(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "notificationsPostApiV1AppNotifications", params)
+}
+func (x *NotificationsClient) NotificationsGetApiV1MeNotifications(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "notificationsGetApiV1MeNotifications", params)
+}
+func (x *NotificationsClient) NotificationsPostApiV1MeNotificationsByNotificationIDRead(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "notificationsPostApiV1MeNotificationsByNotificationIDRead", params)
+}
+func (x *NotificationsClient) NotificationsPostApiV1MeNotificationsReadAll(ctx context.Context, params OperationParams) (map[string]any, error) {
+	return x.client.Operation(ctx, "notificationsPostApiV1MeNotificationsReadAll", params)
 }
 

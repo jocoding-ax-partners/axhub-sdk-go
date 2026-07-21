@@ -9,6 +9,7 @@ var ContextRoutes = map[string][]Route{
 	"gateway": {},
 	"data": {},
 	"deployments": {},
+	"notifications": {},
 }
 
 func init() {
@@ -36,6 +37,8 @@ func contextName(route Route) string {
 		return "data"
 	case "Deploy", "deploy":
 		return "deployments"
+	case "Notifications":
+		return "notifications"
 	default:
 		panic("unmapped route tag: " + route.Tag)
 	}
