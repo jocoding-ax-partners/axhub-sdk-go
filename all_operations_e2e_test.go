@@ -52,6 +52,7 @@ func TestAllGeneratedOperationFacadesMakeHTTPRequests(t *testing.T) {
 	contexts := map[string]any{
 		"apps": c.Apps, "identity": c.Identity(), "tenants": c.Tenants(), "authz": c.Authz(),
 		"audit": c.Audit(), "gateway": c.Gateway(), "data": c.Data(), "deployments": c.Deployments(),
+		"notifications": c.Notifications(),
 	}
 	for _, route := range Routes {
 		target := contexts[contextName(route)]
