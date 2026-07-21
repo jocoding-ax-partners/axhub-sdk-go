@@ -147,6 +147,7 @@ var ErrorCodes = map[string]ErrorInfo{
 	"slug_taken": {Category: "conflict", Status: 409, Retryable: false},
 	"staging_already_enabled": {Category: "conflict", Status: 409, Retryable: false},
 	"staging_mismatch": {Category: "precondition_failed", Status: 412, Retryable: false},
+	"staging_namespace_too_long": {Category: "precondition_failed", Status: 412, Retryable: false},
 	"staging_not_enabled": {Category: "precondition_failed", Status: 412, Retryable: false},
 	"staging_required": {Category: "precondition_failed", Status: 412, Retryable: false},
 	"static_release_in_use": {Category: "conflict", Status: 409, Retryable: false},
